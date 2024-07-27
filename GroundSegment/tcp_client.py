@@ -1,6 +1,6 @@
 import socket
 import tkinter as tk
-from tkinter import simpledialog
+# from tkinter import simpledialog
 from PIL import Image, ImageTk
 import threading
 import matplotlib.pyplot as plt
@@ -8,17 +8,15 @@ import matplotlib.dates as mdates
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import datetime
 
-HOST, PORT = '169.254.4.200', 5000  # Or use your Raspberry Pi's IP address
-
 class TCPClientApp:
-    def __init__(self, master):
+    def __init__(self, master, HOST = '169.254.4.200', PORT = 5000):
         self.master = master
         master.title("TCP Client")
         master.configure(bg='black')
 
         self.server_address = (HOST, PORT)
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.connect(self.server_address)
+        # self.sock.connect(self.server_address)
 
         # GUI Elements
         original_image = Image.open('logo.png')
@@ -74,8 +72,8 @@ class TCPClientApp:
 
         # Start the thread for receiving data
         self.running = True
-        self.thread = threading.Thread(target=self.receive_data)
-        self.thread.start()
+        # self.thread = threading.Thread(target=self.receive_data)
+        # self.thread.start()
 
         # Setup date format on x-axis
         self.ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
@@ -130,6 +128,7 @@ class TCPClientApp:
         except ValueError as e:
             print(f'Error parsing data: {e}')
 
-root = tk.Tk()
-app = TCPClientApp(root)
-root.mainloop()
+if __name__ == '__main__':
+    root = tk.Tk()
+    app = TCPClientApp(root)
+    root.mainloop()
