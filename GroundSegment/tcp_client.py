@@ -1,5 +1,6 @@
 import socket
 import tkinter as tk
+import tkinter.ttk as ttk
 # from tkinter import simpledialog
 from PIL import Image, ImageTk
 import threading
@@ -18,17 +19,9 @@ class TCPClientApp:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # self.sock.connect(self.server_address)
 
-        # GUI Elements
-        original_image = Image.open('logo.png')
-        resized_image = original_image.resize((900, 275), Image.Resampling.LANCZOS)
-        self.logo = ImageTk.PhotoImage(resized_image)
-
-        # Frame for the logo with a visible background
-        self.logo_frame = tk.Frame(master, bg='white')
-        self.logo_frame.pack(fill=tk.X)
-
-        self.logo_label = tk.Label(self.logo_frame, image=self.logo, bg='white')
-        self.logo_label.pack()
+        ###### GUI Elements ######
+        # Add logo
+        self.add_logo(master)
 
         # Frame for connection status and toggle button
         self.status_frame = tk.Frame(master, bg='black')
@@ -43,12 +36,43 @@ class TCPClientApp:
         self.response_label = tk.Label(master, text="", bg='black', fg='white')
         self.response_label.pack(pady=10)
 
-        # Matplotlib elements with dark theme
+        # tabs
+        tabs = tk.ttk.Notebook(master)
+        tabs.pack(expand=1, fill='both')
+        frame1 = tk.Frame(tabs)
+        frame2 = tk.Frame(tabs)
+        tabs.add(frame1, text='Tab 1')
+        tabs.add(frame2, text='Tab 2')
+
+        # create plots
         plt.style.use('dark_background')
         self.fig, self.ax = plt.subplots()
         self.xs, self.ys = [], []
         self.line, = self.ax.plot(self.xs, self.ys, color='green')
+        self.create_plot(master, frame2)
 
+        # Start the thread for receiving data
+        self.running = True
+        # self.thread = threading.Thread(target=self.receive_data)
+        # self.thread.start()
+
+        # Setup date format on x-axis
+        self.ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
+        self.fig.autofmt_xdate()
+
+    def add_logo(self, master):
+        original_image = Image.open('logo.png')
+        resized_image = original_image.resize((900, 275), Image.Resampling.LANCZOS)
+        self.logo = ImageTk.PhotoImage(resized_image)
+
+        # Frame for the logo with a visible background
+        self.logo_frame = tk.Frame(master, bg='white')
+        self.logo_frame.pack(fill=tk.X)
+
+        self.logo_label = tk.Label(self.logo_frame, image=self.logo, bg='white')
+        self.logo_label.pack()
+
+    def create_plot(self, master, frame=None):
         # Add title to the plot
         self.ax.set_title("Voltage Monitor", color='white')
 
@@ -63,21 +87,12 @@ class TCPClientApp:
         self.ax.tick_params(axis='x', colors='white')
         self.ax.tick_params(axis='y', colors='white')
 
-        self.canvas = FigureCanvasTkAgg(self.fig, master)
+        self.canvas = FigureCanvasTkAgg(self.fig, master = frame)
         self.canvas_widget = self.canvas.get_tk_widget()
         self.canvas_widget.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
         # Plot visibility flag
         self.plot_visible = True
-
-        # Start the thread for receiving data
-        self.running = True
-        # self.thread = threading.Thread(target=self.receive_data)
-        # self.thread.start()
-
-        # Setup date format on x-axis
-        self.ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
-        self.fig.autofmt_xdate()
 
     def toggle_plot(self):
         if self.plot_visible:
