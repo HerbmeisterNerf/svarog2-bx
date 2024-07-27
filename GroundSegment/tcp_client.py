@@ -9,6 +9,7 @@ import matplotlib.dates as mdates
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import datetime
 import numpy as np
+import pandas as pd
 from datetime import datetime
 
 class TCPClientApp:
@@ -51,6 +52,7 @@ class TCPClientApp:
         tabs.add(self.frame2, text='Tab 2')
 
         # create list of data
+        self.get_data_format()
         self.create_data_table(master)
 
         # create plots
@@ -159,52 +161,20 @@ class TCPClientApp:
         except ValueError as e:
             print(f'Error parsing data: {e}')
 
-    def create_data_table(self, master):
-        dataName = ['Voltage 28v',
-                'Voltage 5v',
-                'Voltage 12v',
-                'Voltage 24v',
-                'Current 5v',
-                'Current 12v',
-                'Current 24v',
-                'eBox Temp',
-                'Pressure',
-                'IMU Mag x',
-                'IMU Mag y',
-                'IMU Mag z',
-                'IMU Acc x',
-                'IMU Acc y',
-                'IMU Acc z',
-                'Heater 1 status',
-                'Heater 2 status',
-                'Heater 3 status',
-                'Heater 4 status',
-                'Heater 5 status',
-                'Heater 6 status',
-                'Temp 1 status',
-                'Temp 2 status',
-                'Temp 3 status',
-                'Temp 4 status',
-                'Temp 5 status',
-                'Temp 6 status',
-                'BW 1 status',
-                'BW 2 status',
-                'Current Lim status',
-                'RPI 1 status',
-                'RPI 2 status',
-                'RPI 3 status',
-                'RPI 4 status',
-                'Motor speed']
-        
-        data = np.zeros(len(dataName))
+    def get_data_format(self):
+        self.dataFormat = pd.read_csv('dataFormat.csv', header=None)
 
-        for i in range(len(dataName)):
-            tk.Label(self.frame1, text=dataName[i]).grid(row=(i%15), column=(2*(i//15)), padx=10, pady=2)
+    def create_data_table(self, master):        
+        data = np.zeros(len(self.dataFormat[0]))
+
+        for i in range(len(self.dataFormat[0])):
+            tk.Label(self.frame1, text=self.dataFormat[0][i]).grid(row=(i%15), column=(2*(i//15)), padx=10, pady=2)
         self.update_data_table(data)
 
     def update_data_table(self, data):
         for i in range(len(data)):
-            tk.Label(self.frame1, text=data[i]).grid(row=(i%15), column=(1+2*(i//15)), padx=30, pady=3)
+            colour = 'green' if self.dataFormat[1][i] < data[i] and data[i] < self.dataFormat[2][i] else 'red'
+            tk.Label(self.frame1, text=data[i], bg=colour).grid(row=(i%15), column=(1+2*(i//15)), padx=30, pady=3)
 
 ############ Main ############
 

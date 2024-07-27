@@ -1,0 +1,35 @@
+Voltage 28v,26,30
+Voltage 5v,4,6
+Voltage 12v,11,13
+Voltage 24v,22,26
+Current 5v,0,1.5
+Current 12v,0,1.5
+Current 24v,0,1.5
+eBox Temp,-50,80
+Pressure,10,200
+IMU Mag x,1,10
+IMU Mag y,1,10
+IMU Mag z,1,10
+IMU Acc x,1,10
+IMU Acc y,1,10
+IMU Acc z,1,10
+Heater 1 status,0,2
+Heater 2 status,0,2
+Heater 3 status,0,2
+Heater 4 status,0,2
+Heater 5 status,0,2
+Heater 6 status,0,2
+Temp 1 status,0,2
+Temp 2 status,0,2
+Temp 3 status,0,2
+Temp 4 status,0,2
+Temp 5 status,0,2
+Temp 6 status,0,2
+BW 1 status,0,2
+BW 2 status,0,2
+Current Lim status,0,2
+RPI 1 status,0,2
+RPI 2 status,0,2
+RPI 3 status,0,2
+RPI 4 status,0,2
+Motor speed,0,900
