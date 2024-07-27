@@ -9,6 +9,7 @@ import matplotlib.dates as mdates
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import datetime
 import numpy as np
+from datetime import datetime
 
 class TCPClientApp:
 
@@ -44,26 +45,26 @@ class TCPClientApp:
         # tabs
         tabs = tk.ttk.Notebook(master)
         tabs.pack(expand=1, fill='both')
-        frame1 = tk.Frame(tabs)
-        frame2 = tk.Frame(tabs)
-        tabs.add(frame1, text='Tab 1')
-        tabs.add(frame2, text='Tab 2')
+        self.frame1 = tk.Frame(tabs)
+        self.frame2 = tk.Frame(tabs)
+        tabs.add(self.frame1, text='Tab 1')
+        tabs.add(self.frame2, text='Tab 2')
 
         # create list of data
-        self.create_data_table(master, frame1)
+        self.create_data_table(master)
 
         # create plots
         plt.style.use('dark_background')
         self.fig, self.ax = plt.subplots()
         self.xs, self.ys = [], []
         self.line, = self.ax.plot(self.xs, self.ys, color='green')
-        self.create_plot(master, frame2)
+        self.create_plot(master, self.frame2)
 
         ###### Receive data ######
         # Start the thread
-        # self.running = True
-        # self.thread = threading.Thread(target=self.receive_data)
-        # self.thread.start()
+        self.running = True
+        self.thread = threading.Thread(target=self.receive_data)
+        self.thread.start()
 
         # Setup date format on x-axis
         self.ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
@@ -117,15 +118,19 @@ class TCPClientApp:
     def receive_data(self):
         while self.running:
             try:
-                data = self.sock.recv(1024).decode()
-                if data:
-                    print(f"Received: {data}")  # Debugging statement
-                    if "Voltage:" in data:
-                        self.update_plot(data)
-                    else:
-                        self.update_response_label(f"Received: {data}")
-                else:
-                    print("Received empty data")
+                # data = self.sock.recv(1024).decode()
+                data = np.ones(35)
+                now = datetime.now()
+                data = data*now.second
+                self.update_data_table(data)
+                # if data:
+                    # print(f"Received: {data}")  # Debugging statement
+                    # if "Voltage:" in data:
+                    #     self.update_plot(data)
+                    # else:
+                    #     self.update_response_label(f"Received: {data}")
+                # else:
+                #     print("Received empty data")
             except Exception as e:
                 print(f'An exception occurred: {e}')
                 break
@@ -154,7 +159,7 @@ class TCPClientApp:
         except ValueError as e:
             print(f'Error parsing data: {e}')
 
-    def create_data_table(self, master, frame):
+    def create_data_table(self, master):
         dataName = ['Voltage 28v',
                 'Voltage 5v',
                 'Voltage 12v',
@@ -193,11 +198,13 @@ class TCPClientApp:
         
         data = np.zeros(len(dataName))
 
-        n = len(dataName)
-
         for i in range(len(dataName)):
-            tk.Label(frame, text=dataName[i]).grid(row=(i%15), column=(2*(i//15)), padx=10, pady=2)
-            tk.Label(frame, text=data[i]).grid(row=(i%15), column=(1+2*(i//15)), padx=20, pady=2)
+            tk.Label(self.frame1, text=dataName[i]).grid(row=(i%15), column=(2*(i//15)), padx=10, pady=2)
+        self.update_data_table(data)
+
+    def update_data_table(self, data):
+        for i in range(len(data)):
+            tk.Label(self.frame1, text=data[i]).grid(row=(i%15), column=(1+2*(i//15)), padx=30, pady=3)
 
 ############ Main ############
 
