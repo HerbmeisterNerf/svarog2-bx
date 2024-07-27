@@ -50,49 +50,7 @@ class TCPClientApp:
         tabs.add(frame2, text='Tab 2')
 
         # create list of data
-        dataName = ['Voltage 28v',
-                'Voltage 5v',
-                'Voltage 12v',
-                'Voltage 24v',
-                'Current 5v',
-                'Current 12v',
-                'Current 24v',
-                'eBox Temp',
-                'Pressure',
-                'IMU Mag x',
-                'IMU Mag y',
-                'IMU Mag z',
-                'IMU Acc x',
-                'IMU Acc y',
-                'IMU Acc z',
-                'Heater 1 status',
-                'Heater 2 status',
-                'Heater 3 status',
-                'Heater 4 status',
-                'Heater 5 status',
-                'Heater 6 status',
-                'Temp 1 status',
-                'Temp 2 status',
-                'Temp 3 status',
-                'Temp 4 status',
-                'Temp 5 status',
-                'Temp 6 status',
-                'BW 1 status',
-                'BW 2 status',
-                'Current Lim status',
-                'RPI 1 status',
-                'RPI 2 status',
-                'RPI 3 status',
-                'RPI 4 status',
-                'Motor speed']
-        
-        data = np.zeros(len(dataName))
-
-        n = len(dataName)
-
-        for i in range(len(dataName)):
-            tk.Label(frame1, text=dataName[i]).grid(row=(i%15), column=(2*(i//15)), padx=10, pady=2)
-            tk.Label(frame1, text=data[i]).grid(row=(i%15), column=(1+2*(i//15)), padx=20, pady=2)
+        self.create_data_table(master, frame1)
 
         # create plots
         plt.style.use('dark_background')
@@ -195,6 +153,51 @@ class TCPClientApp:
             self.canvas.draw()
         except ValueError as e:
             print(f'Error parsing data: {e}')
+
+    def create_data_table(self, master, frame):
+        dataName = ['Voltage 28v',
+                'Voltage 5v',
+                'Voltage 12v',
+                'Voltage 24v',
+                'Current 5v',
+                'Current 12v',
+                'Current 24v',
+                'eBox Temp',
+                'Pressure',
+                'IMU Mag x',
+                'IMU Mag y',
+                'IMU Mag z',
+                'IMU Acc x',
+                'IMU Acc y',
+                'IMU Acc z',
+                'Heater 1 status',
+                'Heater 2 status',
+                'Heater 3 status',
+                'Heater 4 status',
+                'Heater 5 status',
+                'Heater 6 status',
+                'Temp 1 status',
+                'Temp 2 status',
+                'Temp 3 status',
+                'Temp 4 status',
+                'Temp 5 status',
+                'Temp 6 status',
+                'BW 1 status',
+                'BW 2 status',
+                'Current Lim status',
+                'RPI 1 status',
+                'RPI 2 status',
+                'RPI 3 status',
+                'RPI 4 status',
+                'Motor speed']
+        
+        data = np.zeros(len(dataName))
+
+        n = len(dataName)
+
+        for i in range(len(dataName)):
+            tk.Label(frame, text=dataName[i]).grid(row=(i%15), column=(2*(i//15)), padx=10, pady=2)
+            tk.Label(frame, text=data[i]).grid(row=(i%15), column=(1+2*(i//15)), padx=20, pady=2)
 
 ############ Main ############
 
