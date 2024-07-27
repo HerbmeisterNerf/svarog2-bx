@@ -8,8 +8,12 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import datetime
+import numpy as np
 
 class TCPClientApp:
+
+############ Initializer ############
+
     def __init__(self, master, HOST = '169.254.4.200', PORT = 5000):
         self.master = master
         master.title("TCP Client")
@@ -20,6 +24,7 @@ class TCPClientApp:
         # self.sock.connect(self.server_address)
 
         ###### GUI Elements ######
+
         # Add logo
         self.add_logo(master)
 
@@ -44,6 +49,51 @@ class TCPClientApp:
         tabs.add(frame1, text='Tab 1')
         tabs.add(frame2, text='Tab 2')
 
+        # create list of data
+        dataName = ['Voltage 28v',
+                'Voltage 5v',
+                'Voltage 12v',
+                'Voltage 24v',
+                'Current 5v',
+                'Current 12v',
+                'Current 24v',
+                'eBox Temp',
+                'Pressure',
+                'IMU Mag x',
+                'IMU Mag y',
+                'IMU Mag z',
+                'IMU Acc x',
+                'IMU Acc y',
+                'IMU Acc z',
+                'Heater 1 status',
+                'Heater 2 status',
+                'Heater 3 status',
+                'Heater 4 status',
+                'Heater 5 status',
+                'Heater 6 status',
+                'Temp 1 status',
+                'Temp 2 status',
+                'Temp 3 status',
+                'Temp 4 status',
+                'Temp 5 status',
+                'Temp 6 status',
+                'BW 1 status',
+                'BW 2 status',
+                'Current Lim status',
+                'RPI 1 status',
+                'RPI 2 status',
+                'RPI 3 status',
+                'RPI 4 status',
+                'Motor speed']
+        
+        data = np.zeros(len(dataName))
+
+        n = len(dataName)
+
+        for i in range(len(dataName)):
+            tk.Label(frame1, text=dataName[i]).grid(row=(i%15), column=(2*(i//15)), padx=10, pady=2)
+            tk.Label(frame1, text=data[i]).grid(row=(i%15), column=(1+2*(i//15)), padx=20, pady=2)
+
         # create plots
         plt.style.use('dark_background')
         self.fig, self.ax = plt.subplots()
@@ -51,14 +101,17 @@ class TCPClientApp:
         self.line, = self.ax.plot(self.xs, self.ys, color='green')
         self.create_plot(master, frame2)
 
-        # Start the thread for receiving data
-        self.running = True
+        ###### Receive data ######
+        # Start the thread
+        # self.running = True
         # self.thread = threading.Thread(target=self.receive_data)
         # self.thread.start()
 
         # Setup date format on x-axis
         self.ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
         self.fig.autofmt_xdate()
+
+############ Methods ############
 
     def add_logo(self, master):
         original_image = Image.open('logo.png')
@@ -142,6 +195,8 @@ class TCPClientApp:
             self.canvas.draw()
         except ValueError as e:
             print(f'Error parsing data: {e}')
+
+############ Main ############
 
 if __name__ == '__main__':
     root = tk.Tk()
