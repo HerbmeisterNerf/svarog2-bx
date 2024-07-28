@@ -202,15 +202,25 @@ class TCPClientApp:
         self.disconnect_button.configure(bg="white",fg="black")
         print("Closing Socket...")
 
-    def open_UDP(self):
+    def open_UDP_telem(self):
         # UDP
         client_UDP_port = 11000
         UDP_info = ("", client_UDP_port)
-        self.client_UDP_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.client_UDP_socket.bind(UDP_info)
+        self.client_UDP_socket_telem = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.client_UDP_socket_telem.bind(UDP_info)
 
-    def close_UDP(self):
-        self.client_UDP_socket.close()
+    def close_UDP_telem(self):
+        self.client_UDP_socket_telem.close()
+
+    def open_UDP_img(self):
+        # UDP
+        client_UDP_port = 15000
+        UDP_info = ("", client_UDP_port)
+        self.client_UDP_socket_img = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.client_UDP_socket_img.bind(UDP_info)
+
+    def close_UDP_img(self):
+        self.client_UDP_socket_img.close()
     
     def process_telemetry(self,string):
         variables = string.split(",")
@@ -258,31 +268,31 @@ class TCPClientApp:
         return data
 
     def request_telemetry(self):
-        self.open_UDP() 
+        self.open_UDP_telem() 
         message = "telemetry"
         self.client_TCP_socket.send(message.encode())
-        bytes_read = self.client_UDP_socket.recvfrom(1024)
+        bytes_read = self.client_UDP_socket_telem.recvfrom(1024)
         telem =  bytes_read[0].decode("utf-8")
         self.process_telemetry(telem)
-        self.close_UDP()
+        self.close_UDP_telem()
     def printGUI(self,texto):
         label = tk.Label(self.status_frame,text=texto)
         label.pack()
     def request_image(self):
         filename = "receivedimage.jpg"
-        self.open_UDP() 
+        self.open_UDP_img() 
         message = "image"
         self.client_TCP_socket.send(message.encode())
         print("Receiving image...")
     
-        msg, add = self.client_UDP_socket.recvfrom(1024)
+        msg, add = self.client_UDP_socket_img.recvfrom(1024)
         total_size = int(msg.split(b'\n')[0])  # Receive the size of the image
         print("Size: ", total_size)
         received = 0
 
         with open(filename, 'wb') as f:
             while received < total_size:
-                bytes_read = self.client_UDP_socket.recvfrom(1024)[0]
+                bytes_read = self.client_UDP_socket_img.recvfrom(1024)[0]
 
                 if not bytes_read:
                     break  # The socket is closed
@@ -291,7 +301,7 @@ class TCPClientApp:
 
         print("Image has been received." , bytes_read)
         self.update_image(filename)
-        self.close_UDP()
+        self.close_UDP_img()
     # def update_response_label(self, text):
     #     if self.response_label.winfo_exists():
     #         self.response_label.config(text=text)
