@@ -9,6 +9,7 @@ import matplotlib.dates as mdates
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import datetime
 import numpy as np
+import time
 import pandas as pd
 from datetime import datetime
 
@@ -20,10 +21,6 @@ class TCPClientApp:
         self.master = master
         master.title("TCP Client")
         master.configure(bg='black')
-
-        self.server_address = (HOST, PORT)
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # self.sock.connect(self.server_address)
 
         ###### GUI Elements ######
 
@@ -42,7 +39,9 @@ class TCPClientApp:
 
         self.response_label = tk.Label(master, text="", bg='black', fg='white')
         self.response_label.pack(pady=10)
-
+        
+        self.connect_button = tk.Button(self.status_frame, text="Connect to server", command=self.connect_socket("155.198.40.229"),bg='white', fg='black')
+        self.connect_button.pack(side=tk.LEFT, padx=10)
         # tabs
         tabs = tk.ttk.Notebook(master)
         tabs.pack(expand=1, fill='both')
@@ -73,17 +72,12 @@ class TCPClientApp:
         self.create_plot(master, self.frame2)
 
         ###### Receive data ######
-        # Start the thread
-        self.running = True
-        self.thread = threading.Thread(target=self.receive_data)
-        self.thread.start()
 
         # Setup date format on x-axis
         self.ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
         self.fig.autofmt_xdate()
 
 ############ Methods ############
-
     def add_logo(self, master):
         original_image = Image.open('logo.png')
         resized_image = original_image.resize((900, 275), Image.Resampling.LANCZOS)
@@ -101,7 +95,6 @@ class TCPClientApp:
         panel = tk.Label(frame, image=img)
         panel.image = img
         panel.pack()
-
     def create_plot(self, master, frame=None):
         # Add title to the plot
         self.ax.set_title("Voltage Monitor", color='white')
@@ -157,6 +150,18 @@ class TCPClientApp:
             except Exception as e:
                 print(f'An exception occurred: {e}')
                 break
+    def connect_socket(self,ip):
+        server_name = ip # For the raspberry pi
+        server_TCP_port = 12000
+        client_TCP_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        #Set up a TCP connection with the server
+        client_TCP_socket.connect((server_name, server_TCP_port))
+        print("TCP client running...")
+        print("Connecting to server at IP: ", server_name, " PORT: ", server_TCP_port)
+        client_UDP_port = 11000
+        UDP_info = ("", client_UDP_port)
+        stop_event = threading.Event() 
+        telemetry_thread = None
 
     def update_response_label(self, text):
         if self.response_label.winfo_exists():
@@ -208,7 +213,7 @@ class TCPClientApp:
         self.update_data_table(data)
 
     def update_data_table(self, data):
-
+        time.sleep(1)
         for i in range(len(data)):
             # clear contents
             tk.Label(self.frame1_left, text='000', bg='lightgray', fg='lightgray').grid(row=(1+i%15), column=(1+2*(i//15)), padx=30, pady=3)
