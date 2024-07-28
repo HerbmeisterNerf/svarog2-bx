@@ -55,6 +55,9 @@ class TCPClientApp:
         self.get_data_format()
         self.create_data_table(master)
 
+        # create image from camera
+        self.image = ImageTk.PhotoImage(Image.open('camera.png'))
+
         # create plots
         plt.style.use('dark_background')
         self.fig, self.ax = plt.subplots()
@@ -121,9 +124,14 @@ class TCPClientApp:
         while self.running:
             try:
                 # data = self.sock.recv(1024).decode()
-                data = np.ones(35)
+
                 now = datetime.now()
-                data = data*now.second
+                data = []
+                for i in range(35):
+                    if 15 <= i <= 33:
+                        data.insert(i, 'ON')
+                    else:
+                        data.insert(i, now.second)
                 self.update_data_table(data)
                 # if data:
                     # print(f"Received: {data}")  # Debugging statement
@@ -163,18 +171,54 @@ class TCPClientApp:
 
     def get_data_format(self):
         self.dataFormat = pd.read_csv('dataFormat.csv', header=None)
+        for i in range(35):
+            for j in range(4):
+                if 15 <= i <= 33:
+                    pass
+                else:
+                    self.dataFormat[j+1][i] = float(self.dataFormat[j+1][i])
 
-    def create_data_table(self, master):        
-        data = np.zeros(len(self.dataFormat[0]))
+    def create_data_table(self, master):
+        # mock up data   
+        now = datetime.now()
+        data = []
+        for i in range(35):
+            if 15 <= i <= 33:
+                data.insert(i, 'ON')
+            else:
+                data.insert(i, now.second)
 
+        # add text
         for i in range(len(self.dataFormat[0])):
             tk.Label(self.frame1, text=self.dataFormat[0][i]).grid(row=(i%15), column=(2*(i//15)), padx=10, pady=2)
+        # add data
         self.update_data_table(data)
 
     def update_data_table(self, data):
+
         for i in range(len(data)):
-            colour = 'green' if self.dataFormat[1][i] < data[i] and data[i] < self.dataFormat[2][i] else 'red'
-            tk.Label(self.frame1, text=data[i], bg=colour).grid(row=(i%15), column=(1+2*(i//15)), padx=30, pady=3)
+            # clear contents
+            tk.Label(self.frame1, text='000', bg='lightgray', fg='lightgray').grid(row=(i%15), column=(1+2*(i//15)), padx=30, pady=3)
+
+            # set contents
+            colourFG = 'black'
+            if isinstance(data[i], str):
+                if self.dataFormat[0][i] == 'OFF':
+                    colourBG = 'orange'
+                else:
+                    colourBG = 'green'
+                    colourFG = 'white'
+            else:
+                if data[i] < self.dataFormat[1][i] or data[i] > self.dataFormat[4][i]:
+                    colourBG = 'red'
+                elif self.dataFormat[1][i] < data[i] and data[i] < self.dataFormat[2][i]:
+                    colourBG = 'orange'
+                elif self.dataFormat[3][i] < data[i] and data[i] < self.dataFormat[4][i]:
+                    colourBG = 'orange'
+                else:
+                    colourBG = 'green'
+                    colourFG = 'white'
+            tk.Label(self.frame1, text=data[i], bg=colourBG, fg=colourFG).grid(row=(i%15), column=(1+2*(i//15)), padx=30, pady=3)
 
 ############ Main ############
 
