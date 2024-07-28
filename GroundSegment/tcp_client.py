@@ -146,6 +146,8 @@ class TCPClientApp:
             
             try:
                 # data = self.sock.recv(1024).decode()
+                if self.TCPSTATUS == 1:
+                    self.request_telemetry()
 
                 now = datetime.now()
                 data = []
@@ -183,17 +185,26 @@ class TCPClientApp:
         print("TCP client running...")
         print("Connecting to server at IP: ", server_name, " PORT: ", server_TCP_port)
 
-        # UDP
-        client_UDP_port = 11000
-        UDP_info = ("", client_UDP_port)
-        stop_event = threading.Event() 
-        telemetry_thread = None
     def disconnect_socket(self):
         self.client_TCP_socket.close()
         self.TCPSTATUS = 0
         self.connect_button.configure(bg="white",fg="black")
         self.disconnect_button.configure(bg="white",fg="black")
         print("Closing Socket...")
+    def open_UDP(self):
+        # UDP
+        client_UDP_port = 11000
+        UDP_info = ("", client_UDP_port)
+        self.client_UDP_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.client_UDP_socket.bind(UDP_info)
+    def close_UDP(self):
+        self.client_TCP_socket.close()
+    def request_telemetry(self):
+        self.open_UDP() 
+        message = "telemetry"
+        self.client_TCP_socket.send(message.encode())
+        bytes_read = self.client_UDP_socket.recvfrom(1024)
+        print(bytes_read[0].decode("utf-8"))
     # def update_response_label(self, text):
     #     if self.response_label.winfo_exists():
     #         self.response_label.config(text=text)
