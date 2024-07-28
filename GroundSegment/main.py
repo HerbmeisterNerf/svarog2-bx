@@ -2,7 +2,7 @@ import tkinter as tk
 
 from tcp_client import TCPClientApp
 
-HOST, PORT = '169.254.4.200', 5000  # Or use your Raspberry Pi's IP address
+HOST, PORT = "155.198.40.229", 12000  # Or use your Raspberry Pi's IP address
 
 root = tk.Tk()
 app = TCPClientApp(root, HOST, PORT)

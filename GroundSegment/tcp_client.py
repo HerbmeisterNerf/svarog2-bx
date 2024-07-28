@@ -17,7 +17,12 @@ class TCPClientApp:
 
 ############ Initializer ############
 
-    def __init__(self, master, HOST = '169.254.4.200', PORT = 5000):
+    def __init__(self, master, HOST = "155.198.40.229", PORT = 12000):
+        
+        # TCP info
+        self.HOST = HOST
+        self.PORT = PORT
+
         self.master = master
         master.title("TCP Client")
         master.configure(bg='black')
@@ -31,17 +36,18 @@ class TCPClientApp:
         self.status_frame = tk.Frame(master, bg='black')
         self.status_frame.pack(pady=10)
 
-        self.connect_label = tk.Label(self.status_frame, text="Connected to the server!", bg='white', fg='black')
-        self.connect_label.pack(side=tk.LEFT, padx=10)
+        # self.connect_label = tk.Label(self.status_frame, text="Connected to the server!", bg='white', fg='black')
+        # self.connect_label.pack(side=tk.LEFT, padx=10)
 
         self.toggle_button = tk.Button(self.status_frame, text="Hide Voltage Monitor", command=self.toggle_plot, bg='white', fg='black')
         self.toggle_button.pack(side=tk.LEFT, padx=10)
 
-        self.response_label = tk.Label(master, text="", bg='black', fg='white')
-        self.response_label.pack(pady=10)
+        # self.response_label = tk.Label(master, text="", bg='black', fg='white')
+        # self.response_label.pack(pady=10)
         
-        self.connect_button = tk.Button(self.status_frame, text="Connect to server", command=self.connect_socket("155.198.40.229"),bg='white', fg='black')
+        self.connect_button = tk.Button(self.status_frame, text="Connect to server", command=self.connect_socket,bg='white', fg='black')
         self.connect_button.pack(side=tk.LEFT, padx=10)
+        
         # tabs
         tabs = tk.ttk.Notebook(master)
         tabs.pack(expand=1, fill='both')
@@ -72,6 +78,10 @@ class TCPClientApp:
         self.create_plot(master, self.frame2)
 
         ###### Receive data ######
+        # Start the thread
+        self.running = True
+        self.thread = threading.Thread(target=self.receive_data)
+        self.thread.start()
 
         # Setup date format on x-axis
         self.ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
@@ -150,42 +160,47 @@ class TCPClientApp:
             except Exception as e:
                 print(f'An exception occurred: {e}')
                 break
-    def connect_socket(self,ip):
-        server_name = ip # For the raspberry pi
-        server_TCP_port = 12000
-        client_TCP_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    def connect_socket(self):
+        
+        # TCP
+        server_name = self.HOST # For the raspberry pi
+        server_TCP_port = self.PORT
+        self.client_TCP_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         #Set up a TCP connection with the server
-        client_TCP_socket.connect((server_name, server_TCP_port))
+        self.client_TCP_socket.connect((server_name, server_TCP_port))
         print("TCP client running...")
         print("Connecting to server at IP: ", server_name, " PORT: ", server_TCP_port)
+        
+        # UDP
         client_UDP_port = 11000
         UDP_info = ("", client_UDP_port)
         stop_event = threading.Event() 
         telemetry_thread = None
 
-    def update_response_label(self, text):
-        if self.response_label.winfo_exists():
-            self.response_label.config(text=text)
+    # def update_response_label(self, text):
+    #     if self.response_label.winfo_exists():
+    #         self.response_label.config(text=text)
 
-    def update_plot(self, data):
-        try:
-            voltage = float(data.split()[-1][:-1])  # Extract voltage value
-            current_time = datetime.datetime.now()  # Use datetime object
-            self.ys.append(voltage)
-            self.xs.append(current_time)
+    # def update_plot(self, data):
+    #     try:
+    #         voltage = float(data.split()[-1][:-1])  # Extract voltage value
+    #         current_time = datetime.datetime.now()  # Use datetime object
+    #         self.ys.append(voltage)
+    #         self.xs.append(current_time)
 
-            # Maintain a rolling window of the last 20 data points
-            if len(self.ys) > 20:
-                self.ys.pop(0)
-                self.xs.pop(0)
+    #         # Maintain a rolling window of the last 20 data points
+    #         if len(self.ys) > 20:
+    #             self.ys.pop(0)
+    #             self.xs.pop(0)
 
-            self.line.set_data(self.xs, self.ys)
-            self.ax.relim()
-            self.ax.autoscale_view()
+    #         self.line.set_data(self.xs, self.ys)
+    #         self.ax.relim()
+    #         self.ax.autoscale_view()
 
-            self.canvas.draw()
-        except ValueError as e:
-            print(f'Error parsing data: {e}')
+    #         self.canvas.draw()
+    #     except ValueError as e:
+    #         print(f'Error parsing data: {e}')
 
     def get_data_format(self):
         self.dataFormat = pd.read_csv('dataFormat.csv', header=None)
