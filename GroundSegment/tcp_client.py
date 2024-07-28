@@ -7,11 +7,11 @@ import threading
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import datetime
 import numpy as np
 import time
 import pandas as pd
 from datetime import datetime
+from messagePack import MessagePack
 
 class TCPClientApp:
 
@@ -23,6 +23,7 @@ class TCPClientApp:
         self.HOST = HOST
         self.PORT = PORT
         self.TCPSTATUS = 0
+        self.current_packet = MessagePack()
 
         self.master = master
         master.title("TCP Client")
@@ -155,17 +156,17 @@ class TCPClientApp:
             try:
                 # data = self.sock.recv(1024).decode()
                 if self.TCPSTATUS == 1:
-                    pass
-                    #self.request_telemetry()
+                    self.request_telemetry()     
+                    self.update_data_table(self.formatdata())
 
-                now = datetime.now()
-                data = []
-                for i in range(35):
-                    if 15 <= i <= 33:
-                        data.insert(i, 'ON')
-                    else:
-                        data.insert(i, now.second)
-                self.update_data_table(data)
+                #now = datetime.now()
+                #data = []
+                #for i in range(35):
+                #    if 15 <= i <= 33:
+                #        data.insert(i, 'ON')
+                #    else:
+                #        data.insert(i, now.second)
+
 
 
                 # if data:
@@ -209,16 +210,64 @@ class TCPClientApp:
         self.client_UDP_socket.bind(UDP_info)
 
     def close_UDP(self):
-        self.client_TCP_socket.close()
+        self.client_UDP_socket.close()
+    
+    def process_telemetry(self,string):
+        variables = string.split(",")
+        for each in variables:
+            print(each)
+            var,val = each.split("=")
+            setattr(self.current_packet,var,val)
+    def formatdata(self):
+        data = []
+        data.insert(0,self.current_packet.voltage_28V)
+        data.insert(1,self.current_packet.voltage_5V)
+        data.insert(2,self.current_packet.voltage_12V)
+        data.insert(3,self.current_packet.voltage_24V)
+        data.insert(4,self.current_packet.current_5V)
+        data.insert(5,self.current_packet.current_12V)
+        data.insert(6,self.current_packet.current_24V)
+        data.insert(7,self.current_packet.ebox_temp)
+        data.insert(8,self.current_packet.pressure)
+        data.insert(9,self.current_packet.imu_mag_x)
+        data.insert(10,self.current_packet.imu_mag_y)
+        data.insert(11,self.current_packet.imu_mag_z)
+        data.insert(12,self.current_packet.imu_acc_x)
+        data.insert(13,self.current_packet.imu_mag_y)
+        data.insert(14,self.current_packet.imu_mag_z)
+        data.insert(15,self.current_packet.heater_1_status)
+        data.insert(16,self.current_packet.heater_2_status)
+        data.insert(17,self.current_packet.heater_3_status)
+        data.insert(18,self.current_packet.heater_4_status)
+        data.insert(19,self.current_packet.heater_5_status)
+        data.insert(20,self.current_packet.heater_6_status)
+        data.insert(21,self.current_packet.temp_1_status)
+        data.insert(22,self.current_packet.temp_2_status)
+        data.insert(23,self.current_packet.temp_3_status)
+        data.insert(24,self.current_packet.temp_4_status)
+        data.insert(25,self.current_packet.temp_5_status)
+        data.insert(26,self.current_packet.temp_6_status)
+        data.insert(27,self.current_packet.burn_wire_1_status)
+        data.insert(28,self.current_packet.burn_wire_2_status)
+        data.insert(29,self.current_packet.current_limiting_status)
+        data.insert(30,self.current_packet.rpi_1_status)
+        data.insert(31,self.current_packet.rpi_2_status)
+        data.insert(32,self.current_packet.rpi_3_status)
+        data.insert(33,self.current_packet.rpi_4_status)
+        data.insert(34,self.current_packet.motor_speed)
+        return data
 
     def request_telemetry(self):
         self.open_UDP() 
         message = "telemetry"
         self.client_TCP_socket.send(message.encode())
         bytes_read = self.client_UDP_socket.recvfrom(1024)
-        print(bytes_read[0].decode("utf-8"))
+        telem =  bytes_read[0].decode("utf-8")
+        self.process_telemetry(telem)
         self.close_UDP()
-
+    def printGUI(self,texto):
+        label = tk.Label(self.status_frame,text=texto)
+        label.pack()
     def request_image(self):
         filename = "receivedimage.jpg"
         self.open_UDP() 
