@@ -51,6 +51,9 @@ class TCPClientApp:
 
         self.disconnect_button = tk.Button(self.status_frame, text="Disconnect to server", command=self.disconnect_socket,bg='white', fg='black')
         self.disconnect_button.pack(side=tk.LEFT, padx=10)
+
+        self.imagebutton = tk.Button(self.status_frame, text="Get image", command=self.request_image,bg='white', fg='black')
+        self.imagebutton.pack(side=tk.LEFT, padx=10)
         
         # tabs
         tabs = tk.ttk.Notebook(master)
@@ -72,7 +75,8 @@ class TCPClientApp:
         self.create_data_table()
 
         # create image from camera
-        self.add_image_camera(self.frame1_right)
+        
+        self.add_image_camera(self.frame1_right,"camera.png")
 
         # create plots
         plt.style.use('dark_background')
@@ -104,11 +108,15 @@ class TCPClientApp:
         self.logo_label = tk.Label(self.logo_frame, image=self.logo, bg='white')
         self.logo_label.pack()
 
-    def add_image_camera(self, frame):
-        img = ImageTk.PhotoImage(Image.open('camera.png').resize((500, 175), Image.Resampling.LANCZOS))
-        panel = tk.Label(frame, image=img)
-        panel.image = img
-        panel.pack()
+    def add_image_camera(self, frame,filename):
+        img = ImageTk.PhotoImage(Image.open(filename).resize((500, 175), Image.Resampling.LANCZOS))
+        self.panel = tk.Label(frame, image=img)
+        self.panel.image = img
+        self.panel.pack()
+    def update_image(self,filename):
+        img = ImageTk.PhotoImage(Image.open(filename), Image.Resampling.LANCZOS)
+        self.panel.configure(image=img)
+        self.panel.image = img
     def create_plot(self, master, frame=None):
         # Add title to the plot
         self.ax.set_title("Voltage Monitor", color='white')
@@ -147,7 +155,8 @@ class TCPClientApp:
             try:
                 # data = self.sock.recv(1024).decode()
                 if self.TCPSTATUS == 1:
-                    self.request_telemetry()
+                    pass
+                    #self.request_telemetry()
 
                 now = datetime.now()
                 data = []
@@ -191,20 +200,49 @@ class TCPClientApp:
         self.connect_button.configure(bg="white",fg="black")
         self.disconnect_button.configure(bg="white",fg="black")
         print("Closing Socket...")
+
     def open_UDP(self):
         # UDP
         client_UDP_port = 11000
         UDP_info = ("", client_UDP_port)
         self.client_UDP_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.client_UDP_socket.bind(UDP_info)
+
     def close_UDP(self):
         self.client_TCP_socket.close()
+
     def request_telemetry(self):
         self.open_UDP() 
         message = "telemetry"
         self.client_TCP_socket.send(message.encode())
         bytes_read = self.client_UDP_socket.recvfrom(1024)
         print(bytes_read[0].decode("utf-8"))
+        self.close_UDP()
+
+    def request_image(self):
+        filename = "receivedimage.jpg"
+        self.open_UDP() 
+        message = "image"
+        self.client_TCP_socket.send(message.encode())
+        print("Receiving image...")
+    
+        msg, add = self.client_UDP_socket.recvfrom(1024)
+        total_size = int(msg.split(b'\n')[0])  # Receive the size of the image
+        print("Size: ", total_size)
+        received = 0
+
+        with open(filename, 'wb') as f:
+            while received < total_size:
+                bytes_read = self.client_UDP_socket.recvfrom(1024)[0]
+
+                if not bytes_read:
+                    break  # The socket is closed
+                f.write(bytes_read)
+                received += len(bytes_read)
+
+        print("Image has been received." , bytes_read)
+        self.update_image(filename)
+        self.close_UDP()
     # def update_response_label(self, text):
     #     if self.response_label.winfo_exists():
     #         self.response_label.config(text=text)
