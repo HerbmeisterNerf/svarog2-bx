@@ -153,7 +153,6 @@ class TCPClientApp:
                 self.update_data_table(data)
 
 
-
                 # if data:
                     # print(f"Received: {data}")  # Debugging statement
                     # if "Voltage:" in data:
@@ -167,7 +166,7 @@ class TCPClientApp:
                 break
 
     def connect_socket(self):
-        
+
         # TCP
         server_name = self.HOST # For the raspberry pi
         server_TCP_port = self.PORT
@@ -176,7 +175,7 @@ class TCPClientApp:
         self.client_TCP_socket.connect((server_name, server_TCP_port))
         print("TCP client running...")
         print("Connecting to server at IP: ", server_name, " PORT: ", server_TCP_port)
-        
+
         # UDP
         client_UDP_port = 11000
         UDP_info = ("", client_UDP_port)
