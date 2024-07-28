@@ -51,12 +51,19 @@ class TCPClientApp:
         tabs.add(self.frame1, text='Tab 1')
         tabs.add(self.frame2, text='Tab 2')
 
+        # frames inside frame1
+        self.frame1_left = tk.Frame(self.frame1)
+        self.frame1_right = tk.Frame(self.frame1)
+
+        self.frame1_left.grid(row=0, column=0)
+        self.frame1_right.grid(row=0, column=1)
+
         # create list of data
         self.get_data_format()
-        self.create_data_table(master)
+        self.create_data_table()
 
         # create image from camera
-        self.add_image(self.frame1)
+        self.add_image_camera(self.frame1_right)
 
         # create plots
         plt.style.use('dark_background')
@@ -89,11 +96,11 @@ class TCPClientApp:
         self.logo_label = tk.Label(self.logo_frame, image=self.logo, bg='white')
         self.logo_label.pack()
 
-    def add_image(self, frame):
+    def add_image_camera(self, frame):
         img = ImageTk.PhotoImage(Image.open('camera.png').resize((500, 175), Image.Resampling.LANCZOS))
         panel = tk.Label(frame, image=img)
         panel.image = img
-        panel.grid(row=0, column=1)
+        panel.pack()
 
     def create_plot(self, master, frame=None):
         # Add title to the plot
@@ -184,7 +191,7 @@ class TCPClientApp:
                 else:
                     self.dataFormat[j+1][i] = float(self.dataFormat[j+1][i])
 
-    def create_data_table(self, master):
+    def create_data_table(self):
         # mock up data   
         now = datetime.now()
         data = []
@@ -196,7 +203,7 @@ class TCPClientApp:
 
         # add text
         for i in range(len(self.dataFormat[0])):
-            tk.Label(self.frame1, text=self.dataFormat[0][i]).grid(row=(1+i%15), column=(2*(i//15)), padx=10, pady=2)
+            tk.Label(self.frame1_left, text=self.dataFormat[0][i]).grid(row=(1+i%15), column=(2*(i//15)), padx=10, pady=2)
         # add data
         self.update_data_table(data)
 
@@ -204,7 +211,7 @@ class TCPClientApp:
 
         for i in range(len(data)):
             # clear contents
-            tk.Label(self.frame1, text='000', bg='lightgray', fg='lightgray').grid(row=(1+i%15), column=(1+2*(i//15)), padx=30, pady=3)
+            tk.Label(self.frame1_left, text='000', bg='lightgray', fg='lightgray').grid(row=(1+i%15), column=(1+2*(i//15)), padx=30, pady=3)
 
             # set contents
             colourFG = 'black'
@@ -224,7 +231,7 @@ class TCPClientApp:
                 else:
                     colourBG = 'green'
                     colourFG = 'white'
-            tk.Label(self.frame1, text=data[i], bg=colourBG, fg=colourFG).grid(row=(1+i%15), column=(1+2*(i//15)), padx=30, pady=3)
+            tk.Label(self.frame1_left, text=data[i], bg=colourBG, fg=colourFG).grid(row=(1+i%15), column=(1+2*(i//15)), padx=30, pady=3)
 
 ############ Main ############
 
