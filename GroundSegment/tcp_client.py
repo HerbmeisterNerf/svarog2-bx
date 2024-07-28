@@ -46,8 +46,8 @@ class TCPClientApp:
         # tabs
         tabs = tk.ttk.Notebook(master)
         tabs.pack(expand=1, fill='both')
-        self.frame1 = tk.Frame(tabs)
-        self.frame2 = tk.Frame(tabs)
+        self.frame1 = tk.Frame(tabs, bg='khaki1')
+        self.frame2 = tk.Frame(tabs, bg='lightgray')
         tabs.add(self.frame1, text='Tab 1')
         tabs.add(self.frame2, text='Tab 2')
 
@@ -55,8 +55,8 @@ class TCPClientApp:
         self.frame1_left = tk.Frame(self.frame1)
         self.frame1_right = tk.Frame(self.frame1)
 
-        self.frame1_left.grid(row=0, column=0)
-        self.frame1_right.grid(row=0, column=1)
+        self.frame1_left.grid(row=0, column=0, padx=10, pady=10)
+        self.frame1_right.grid(row=0, column=1, padx=10, pady=10)
 
         # create list of data
         self.get_data_format()
