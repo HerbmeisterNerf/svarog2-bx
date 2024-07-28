@@ -138,6 +138,8 @@ class TCPClientApp:
 
     def receive_data(self):
         while self.running:
+            time.sleep(1)
+            
             try:
                 # data = self.sock.recv(1024).decode()
 
@@ -149,6 +151,9 @@ class TCPClientApp:
                     else:
                         data.insert(i, now.second)
                 self.update_data_table(data)
+
+
+
                 # if data:
                     # print(f"Received: {data}")  # Debugging statement
                     # if "Voltage:" in data:
@@ -228,7 +233,6 @@ class TCPClientApp:
         self.update_data_table(data)
 
     def update_data_table(self, data):
-        time.sleep(1)
         for i in range(len(data)):
             # clear contents
             tk.Label(self.frame1_left, text='000', bg='lightgray', fg='lightgray').grid(row=(1+i%15), column=(1+2*(i//15)), padx=30, pady=3)
