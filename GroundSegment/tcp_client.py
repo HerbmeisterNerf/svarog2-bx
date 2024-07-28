@@ -22,6 +22,7 @@ class TCPClientApp:
         # TCP info
         self.HOST = HOST
         self.PORT = PORT
+        self.TCPSTATUS = 0
 
         self.master = master
         master.title("TCP Client")
@@ -47,6 +48,9 @@ class TCPClientApp:
         
         self.connect_button = tk.Button(self.status_frame, text="Connect to server", command=self.connect_socket,bg='white', fg='black')
         self.connect_button.pack(side=tk.LEFT, padx=10)
+
+        self.disconnect_button = tk.Button(self.status_frame, text="Disconnect to server", command=self.disconnect_socket,bg='white', fg='black')
+        self.disconnect_button.pack(side=tk.LEFT, padx=10)
         
         # tabs
         tabs = tk.ttk.Notebook(master)
@@ -173,6 +177,9 @@ class TCPClientApp:
         self.client_TCP_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         #Set up a TCP connection with the server
         self.client_TCP_socket.connect((server_name, server_TCP_port))
+        self.TCPSTATUS = 1
+        self.connect_button.configure(bg="green",fg="white")
+        self.disconnect_button.configure(bg="red",fg="white")
         print("TCP client running...")
         print("Connecting to server at IP: ", server_name, " PORT: ", server_TCP_port)
 
@@ -181,7 +188,12 @@ class TCPClientApp:
         UDP_info = ("", client_UDP_port)
         stop_event = threading.Event() 
         telemetry_thread = None
-
+    def disconnect_socket(self):
+        self.client_TCP_socket.close()
+        self.TCPSTATUS = 0
+        self.connect_button.configure(bg="white",fg="black")
+        self.disconnect_button.configure(bg="white",fg="black")
+        print("Closing Socket...")
     # def update_response_label(self, text):
     #     if self.response_label.winfo_exists():
     #         self.response_label.config(text=text)
