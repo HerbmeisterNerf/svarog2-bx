@@ -31,7 +31,7 @@ class LiveUpdatesTelemetry(threading.Thread):
                 # if os.environ["TCPSTATUS"] == "1":
                 if CommonData.TCPSTATUS == True:
                     self.__request_telemetry()   
-                    self.update_data_table(self.__formatdata(), self.frame1_left, self.dataFormat)
+                    LiveUpdatesTelemetry.update_data_table(self.__formatdata(), self.frame1_left, self.dataFormat)
                 else:
                     print("Not connected to server")
             except Exception as e:
