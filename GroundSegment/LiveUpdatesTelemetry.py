@@ -2,29 +2,35 @@
 import threading
 import socket
 import tkinter as tk
+import os
+import time
+
+############ custom libraries ############
+from CommonData import CommonData
 
 ############ class ############
 class LiveUpdatesTelemetry(threading.Thread):
 
     def __init__(self, queue, 
-                TCPSTATUS = 0, running = False,
-                socket = None, current_packet = None,
-                dataFormat = None,
-                frame1_left = None):
+                current_packet,
+                dataFormat,
+                frame1_left,
+                running = False):
         super().__init__()
         self.queue = queue
-        self.TCPSTATUS = TCPSTATUS
         self.running = running
-        self.client_TCP_socket = socket
         self.current_packet = current_packet
         self.dataFormat = dataFormat
         self.frame1_left = frame1_left
 
     def run(self):
         while self.running:
+            time.sleep(1)
             try:
-                if self.TCPSTATUS == 1:
-                    self.__request_telemetry()     
+                # if self.TCPSTATUS == 1:
+                # if os.environ["TCPSTATUS"] == "1":
+                if CommonData.TCPSTATUS == True:
+                    self.__request_telemetry()   
                     self.update_data_table(self.__formatdata(), self.frame1_left, self.dataFormat)
                 else:
                     print("Not connected to server")
@@ -34,9 +40,11 @@ class LiveUpdatesTelemetry(threading.Thread):
     def __request_telemetry(self):
         self.__open_UDP_telem() 
         message = "telemetry"
-        self.client_TCP_socket.send(message.encode())
+        # self.client_TCP_socket.send(message.encode())
+        CommonData.client_TCP_socket.send(message.encode())
         bytes_read = self.client_UDP_socket_telem.recvfrom(1024)
         telem =  bytes_read[0].decode("utf-8")
+        print(telem)
         self.__process_telemetry(telem)
         self.__close_UDP_telem()
     

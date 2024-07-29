@@ -10,10 +10,12 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import pandas as pd
 from datetime import datetime
 import queue
+import os
 
 ############ custom libraries ############
 from MessagePack import MessagePack
 from LiveUpdatesTelemetry import LiveUpdatesTelemetry
+from CommonData import CommonData
 
 ############ class ############
 class TCPClientApp:
@@ -23,12 +25,12 @@ class TCPClientApp:
     def __init__(self, master, HOST = "155.198.40.229", PORT = 12000):
         
         # initialise variables
-        self.client_TCP_socket = None
+        # common = CommonData()
 
         # TCP info
         self.HOST = HOST
         self.PORT = PORT
-        self.TCPSTATUS = 0
+        # self.TCPSTATUS = 0
         self.current_packet = MessagePack()
 
         self.master = master
@@ -174,18 +176,25 @@ class TCPClientApp:
         # TCP
         server_name = self.HOST # For the raspberry pi
         server_TCP_port = self.PORT
-        self.client_TCP_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # self.client_TCP_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        CommonData.client_TCP_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         #Set up a TCP connection with the server
-        self.client_TCP_socket.connect((server_name, server_TCP_port))
-        self.TCPSTATUS = 1
+        # self.client_TCP_socket.connect((server_name, server_TCP_port))
+        CommonData.client_TCP_socket.connect((server_name, server_TCP_port))
+        # self.TCPSTATUS = 1
+        # os.environ["TCPSTATUS"] = "1"
+        CommonData.TCPSTATUS = True
         self.connect_button.configure(bg="green",fg="white")
         self.disconnect_button.configure(bg="red",fg="white")
         print("TCP client running...")
         print("Connecting to server at IP: ", server_name, " PORT: ", server_TCP_port)
 
     def disconnect_socket(self):
-        self.client_TCP_socket.close()
-        self.TCPSTATUS = 0
+        # self.client_TCP_socket.close()
+        CommonData.client_TCP_socket.close()
+        # self.TCPSTATUS = 0
+        # os.environ["TCPSTATUS"] = "0"
+        CommonData.TCPSTATUS = False
         self.connect_button.configure(bg="white",fg="black")
         self.disconnect_button.configure(bg="white",fg="black")
         print("Closing Socket...")
@@ -210,7 +219,8 @@ class TCPClientApp:
         filename = "receivedimage.jpg"
         self.open_UDP_img() 
         message = "image"
-        self.client_TCP_socket.send(message.encode())
+        # self.client_TCP_socket.send(message.encode())
+        CommonData.client_TCP_socket.send(message.encode())
         print("Receiving image...")
     
         msg, add = self.client_UDP_socket_img.recvfrom(1024)
@@ -297,10 +307,10 @@ class TCPClientApp:
     def start_live_updates(self):
         self.queue = queue.Queue()
         LiveUpdatesTelemetry(self.queue,
-                            self.TCPSTATUS, self.running,
-                            self.client_TCP_socket, self.current_packet,
+                            self.current_packet,
                             self.dataFormat,
-                            self.frame1_left).start()
+                            self.frame1_left,
+                            self.running).start()
         self.master.after(100, self.process_queue)
 
     def process_queue(self):
