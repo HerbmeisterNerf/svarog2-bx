@@ -133,7 +133,7 @@ class TCPClientApp:
         self.panel.pack()
 
     def update_image(self,filename):
-        img = ImageTk.PhotoImage(Image.open(filename), Image.Resampling.LANCZOS)
+        img = ImageTk.PhotoImage(Image.open(filename).resize((500, 175), Image.Resampling.LANCZOS))
         self.panel.configure(image=img)
         self.panel.image = img
 
