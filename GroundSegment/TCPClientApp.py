@@ -77,7 +77,7 @@ class TCPClientApp:
         tabs.add(self.frame2, text='Tab 2')
 
         # frames inside frame1
-        self.frame1_left = tk.Frame(self.frame1)
+        self.frame1_left = tk.Frame(self.frame1, bg='lightgray')
         self.frame1_right = tk.Frame(self.frame1)
 
         self.frame1_left.grid(row=0, column=0, padx=10, pady=10)
@@ -286,7 +286,7 @@ class TCPClientApp:
 
         # add text
         for i in range(len(self.dataFormat[0])):
-            tk.Label(self.frame1_left, text=self.dataFormat[0][i]).grid(row=(1+i%15), column=(2*(i//15)), padx=10, pady=2)
+            tk.Label(self.frame1_left, text=self.dataFormat[0][i], bg='lightgray').grid(row=(1+i%15), column=(2*(i//15)), padx=10, pady=2)
         # add data
         LiveUpdatesTelemetry.update_data_table(data, self.frame1_left, self.dataFormat)
     
