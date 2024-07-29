@@ -1,6 +1,6 @@
 import tkinter as tk
 
-from tcp_client import TCPClientApp
+from TCPClientApp import TCPClientApp
 
 HOST, PORT = "155.198.40.229", 12000  # Or use your Raspberry Pi's IP address
 
