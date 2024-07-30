@@ -82,51 +82,44 @@ class LiveUpdatesTelemetry(threading.Thread):
         data.insert(12,float(self.current_packet.imu_acc_x))
         data.insert(13,float(self.current_packet.imu_mag_y))
         data.insert(14,float(self.current_packet.imu_mag_z))
-        data.insert(15,self.current_packet.heater_1_status)
-        data.insert(16,self.current_packet.heater_2_status)
-        data.insert(17,self.current_packet.heater_3_status)
-        data.insert(18,self.current_packet.heater_4_status)
-        data.insert(19,self.current_packet.heater_5_status)
-        data.insert(20,self.current_packet.heater_6_status)
+        data.insert(15,int(self.current_packet.heater_1_status))
+        data.insert(16,int(self.current_packet.heater_2_status))
+        data.insert(17,int(self.current_packet.heater_3_status))
+        data.insert(18,int(self.current_packet.heater_4_status))
+        data.insert(19,int(self.current_packet.heater_5_status))
+        data.insert(20,int(self.current_packet.heater_6_status))
         data.insert(21,float(self.current_packet.temp_1_status))
         data.insert(22,float(self.current_packet.temp_2_status))
         data.insert(23,float(self.current_packet.temp_3_status))
         data.insert(24,float(self.current_packet.temp_4_status))
         data.insert(25,float(self.current_packet.temp_5_status))
         data.insert(26,float(self.current_packet.temp_6_status))
-        data.insert(27,self.current_packet.burn_wire_1_status)
-        data.insert(28,self.current_packet.burn_wire_2_status)
-        data.insert(29,self.current_packet.current_limiting_status)
-        data.insert(30,self.current_packet.rpi_1_status)
-        data.insert(31,self.current_packet.rpi_2_status)
-        data.insert(32,self.current_packet.rpi_3_status)
-        data.insert(33,self.current_packet.rpi_4_status)
+        data.insert(27,int(self.current_packet.burn_wire_1_status))
+        data.insert(28,int(self.current_packet.burn_wire_2_status))
+        data.insert(29,int(self.current_packet.current_limiting_status))
+        data.insert(30,int(self.current_packet.rpi_1_status))
+        data.insert(31,int(self.current_packet.rpi_2_status))
+        data.insert(32,int(self.current_packet.rpi_3_status))
+        data.insert(33,int(self.current_packet.rpi_4_status))
         data.insert(34,float(self.current_packet.motor_speed))
         return data
 
     def update_data_table(data, frame1_left, dataFormat):
-        for i in range(len(data)):
+        for i in range(CommonData.telemetryParameters):
             # clear contents
             tk.Label(frame1_left, text='00000000', bg='lightgray', fg='lightgray').grid(row=(1+i%15), column=(1+2*(i//15)), padx=30, pady=3, rowspan=20)
 
             # set contents
             colourFG = 'black'
-            if isinstance(data[i], str):
-                if dataFormat[0][i] == 'OFF':
-                    colourBG = 'orange'
-                else:
-                    colourBG = 'green'
-                    colourFG = 'white'
+            if data[i] < dataFormat[1][i] or data[i] > dataFormat[4][i]:
+                colourBG = 'red'
+            elif dataFormat[1][i] < data[i] and data[i] < dataFormat[2][i]:
+                colourBG = 'orange'
+            elif dataFormat[3][i] < data[i] and data[i] < dataFormat[4][i]:
+                colourBG = 'orange'
             else:
-                if data[i] < dataFormat[1][i] or data[i] > dataFormat[4][i]:
-                    colourBG = 'red'
-                elif dataFormat[1][i] < data[i] and data[i] < dataFormat[2][i]:
-                    colourBG = 'orange'
-                elif dataFormat[3][i] < data[i] and data[i] < dataFormat[4][i]:
-                    colourBG = 'orange'
-                else:
-                    colourBG = 'green'
-                    colourFG = 'white'
+                colourBG = 'green'
+                colourFG = 'white'
             tk.Label(frame1_left, text=data[i], bg=colourBG, fg=colourFG).grid(row=(1+i%15), column=(1+2*(i//15)), padx=30, pady=3)
 
 ############ Main ############

@@ -4,14 +4,11 @@ import socket
 import tkinter as tk
 import tkinter.ttk as ttk
 from PIL import Image, ImageTk
-import threading
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import pandas as pd
-from datetime import datetime
 import queue
-import os
 
 ############ custom libraries ############
 from MessagePack import MessagePack
@@ -24,14 +21,13 @@ class TCPClientApp:
 ############ Initializer ############
 
     def __init__(self, master, HOST = "155.198.40.229", PORT = 12000):
-        
-        # initialise variables
-        # common = CommonData()
 
         # TCP info
         self.HOST = HOST
         self.PORT = PORT
-        # self.TCPSTATUS = 0
+
+        # other variables
+        CommonData.telemetryParameters = 35
         self.current_packet = MessagePack()
 
         self.master = master
@@ -51,14 +47,8 @@ class TCPClientApp:
         exit_button = tk.Button(self.status_frame, text="Exit", command=master.destroy) 
         exit_button.pack(pady=20)
 
-        # self.connect_label = tk.Label(self.status_frame, text="Connected to the server!", bg='white', fg='black')
-        # self.connect_label.pack(side=tk.LEFT, padx=10)
-
         self.toggle_button = tk.Button(self.status_frame, text="Hide Voltage Monitor", command=self.toggle_plot, bg='white', fg='black')
         self.toggle_button.pack(side=tk.LEFT, padx=10)
-
-        # self.response_label = tk.Label(master, text="", bg='black', fg='white')
-        # self.response_label.pack(pady=10)
         
         self.connect_button = tk.Button(self.status_frame, text="Connect to server", command=self.connect_socket,bg='white', fg='black')
         self.connect_button.pack(side=tk.LEFT, padx=10)
@@ -101,8 +91,6 @@ class TCPClientApp:
         ###### Receive data ######
         # Start the thread
         self.running = True
-        # self.thread = threading.Thread(target=self.receive_data)
-        # self.thread.start()
         self.start_live_updates()
 
         # Setup date format on x-axis
@@ -177,13 +165,9 @@ class TCPClientApp:
         # TCP
         server_name = self.HOST # For the raspberry pi
         server_TCP_port = self.PORT
-        # self.client_TCP_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         CommonData.client_TCP_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         #Set up a TCP connection with the server
-        # self.client_TCP_socket.connect((server_name, server_TCP_port))
         CommonData.client_TCP_socket.connect((server_name, server_TCP_port))
-        # self.TCPSTATUS = 1
-        # os.environ["TCPSTATUS"] = "1"
         CommonData.TCPSTATUS = True
         self.connect_button.configure(bg="green",fg="white")
         self.disconnect_button.configure(bg="red",fg="white")
@@ -191,10 +175,7 @@ class TCPClientApp:
         print("Connecting to server at IP: ", server_name, " PORT: ", server_TCP_port)
 
     def disconnect_socket(self):
-        # self.client_TCP_socket.close()
         CommonData.client_TCP_socket.close()
-        # self.TCPSTATUS = 0
-        # os.environ["TCPSTATUS"] = "0"
         CommonData.TCPSTATUS = False
         self.connect_button.configure(bg="white",fg="black")
         self.disconnect_button.configure(bg="white",fg="black")
@@ -220,7 +201,6 @@ class TCPClientApp:
         filename = "receivedimage.jpg"
         self.open_UDP_img() 
         message = "image"
-        # self.client_TCP_socket.send(message.encode())
         CommonData.client_TCP_socket.send(message.encode())
         print("Receiving image...")
     
@@ -268,42 +248,20 @@ class TCPClientApp:
 
     def get_data_format(self):
         self.dataFormat = pd.read_csv('dataFormat.csv', header=None)
-        for i in range(35):
+        for i in range(CommonData.telemetryParameters):
             for j in range(4):
-                if 15 <= i <= 33:
-                    pass
-                else:
-                    self.dataFormat[j+1][i] = float(self.dataFormat[j+1][i])
+                self.dataFormat[j+1][i] = float(self.dataFormat[j+1][i])
 
     def create_data_table(self):
-        # mock up data   
-        now = datetime.now()
         data = []
-        for i in range(35):
-            if 15 <= i <= 33:
-                data.insert(i, 'ON')
-            else:
-                data.insert(i, now.second)
+        for i in range(CommonData.telemetryParameters):
+                data.insert(i, 0.0)
 
         # add text
-        for i in range(len(self.dataFormat[0])):
+        for i in range(CommonData.telemetryParameters):
             tk.Label(self.frame1_left, text=self.dataFormat[0][i], bg='lightgray').grid(row=(1+i%15), column=(2*(i//15)), padx=10, pady=2)
         # add data
         LiveUpdatesTelemetry.update_data_table(data, self.frame1_left, self.dataFormat)
-    
-    # def receive_data(self):
-    #     while self.running:
-    #         time.sleep(1)
-    #         try:
-    #             # data = self.sock.recv(1024).decode()
-    #             if self.TCPSTATUS == 1:
-    #                 self.request_telemetry()     
-    #                 self.update_data_table(self.formatdata())
-    #             else:
-    #                 print("Not connected to server")
-    #         except Exception as e:
-    #             print(f'An exception occurred: {e}')
-    #             break
 
     def start_live_updates(self):
         self.queue = queue.Queue()
