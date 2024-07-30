@@ -1,4 +1,6 @@
+
 class MessagePack:
+
     def __init__(self, message='0' * 311):
          self.package_count = int(message[0:8], 2)
          self.timestamp = int(message[8:40], 2)
