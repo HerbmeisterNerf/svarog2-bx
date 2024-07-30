@@ -94,7 +94,6 @@ class TCPClientApp:
 
         ###### Receive data ######
         # Start the thread
-        self.running = True
         self.start_live_updates()
 
         # Setup date format on x-axis
