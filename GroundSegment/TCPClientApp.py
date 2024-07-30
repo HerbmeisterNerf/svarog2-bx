@@ -1,8 +1,7 @@
-
 ############ standard libraries ############
 import socket
 import tkinter as tk
-import tkinter.ttk as ttk
+import tkinter.ttk
 from PIL import Image, ImageTk
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
