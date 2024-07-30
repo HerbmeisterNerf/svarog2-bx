@@ -222,6 +222,10 @@ class TCPClientApp:
     ###### live updates ######
 
     def start_live_updates(self):
+        '''
+        Starts the live updates for telemetry and camera by means of a thread queue
+        '''
+
         self.queue = queue.Queue()
         self.queue.put_nowait(self.processTelemetry())
         self.queue.put_nowait(self.processCamera())
@@ -250,14 +254,26 @@ class TCPClientApp:
     ###### toggles ######
 
     def __toggleOff(self, button, name: str):
+        '''
+        Modifies a toggle button appearance to indicate that the feature is off
+        '''
+
         button.config(text=name+ " currently off")
         button.config(bg="red", fg="white")
 
     def __toggleOn(self, button, name: str):
+        '''
+        Modifies a toggle button appearance to indicate that the feature is on
+        '''
+
         button.config(text=name+ " currently on")
         button.config(bg="green", fg="white")
 
     def toggleTelem(self, flag=True):
+        '''
+        Switches the telemetry update on or off
+        '''
+
         name = "Telemetry"
         if flag: # nominal behaviour
             if CommonData.runTelemetry:
@@ -271,6 +287,10 @@ class TCPClientApp:
             self.__toggleOff(self.telemetryButton, name)
     
     def toggleCamera(self, flag=True):
+        '''
+        Switches the camera update on or off
+        '''
+
         name = "Camera"
         if flag: # nominal behaviour
             if CommonData.runCamera:
@@ -284,6 +304,10 @@ class TCPClientApp:
             self.__toggleOff(self.imageButton, name)
 
     def togglePlot(self):
+        '''
+        TBD
+        '''
+
         if self.plot_visible:
             self.canvas_widget.pack_forget()
             self.toggle_button.config(text="Show Voltage Monitor")
