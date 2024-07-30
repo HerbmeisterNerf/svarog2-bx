@@ -2,7 +2,6 @@
 import threading
 import socket
 import tkinter as tk
-import os
 import time
 
 ############ custom libraries ############
@@ -14,26 +13,25 @@ class LiveUpdatesTelemetry(threading.Thread):
     def __init__(self, queue, 
                 current_packet,
                 dataFormat,
-                frame1_left,
-                running = False):
+                frame1_left):
         super().__init__()
         self.queue = queue
-        self.running = running
         self.current_packet = current_packet
         self.dataFormat = dataFormat
         self.frame1_left = frame1_left
 
     def run(self):
-        while self.running:
-            time.sleep(1)
-            try:
-                if CommonData.TCPSTATUS == True:
-                    self.__request_telemetry()   
-                    LiveUpdatesTelemetry.update_data_table(self.__formatdata(), self.frame1_left, self.dataFormat)
-                else:
-                    print("Not connected to server")
-            except Exception as e:
-                print(f'An exception occurred: {e}')
+        while True:
+            if CommonData.runTelemetry:
+                time.sleep(1)
+                try:
+                    if CommonData.TCPSTATUS == True:
+                        self.__request_telemetry()   
+                        LiveUpdatesTelemetry.update_data_table(self.__formatdata(), self.frame1_left, self.dataFormat)
+                    else:
+                        print("Not connected to server")
+                except Exception as e:
+                    print(f'An exception occurred: {e}')
 
     def __request_telemetry(self):
         self.__open_UDP_telem() 

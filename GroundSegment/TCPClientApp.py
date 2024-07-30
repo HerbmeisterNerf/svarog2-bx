@@ -48,17 +48,20 @@ class TCPClientApp:
         exit_button = tk.Button(self.status_frame, text="Exit", command=master.destroy) 
         exit_button.pack(pady=20)
 
-        self.toggle_button = tk.Button(self.status_frame, text="Hide Voltage Monitor", command=self.toggle_plot, bg='white', fg='black')
-        self.toggle_button.pack(side=tk.LEFT, padx=10)
+        self.plotButton = tk.Button(self.status_frame, text="Hide Voltage Monitor", command=self.togglePlot, bg='white', fg='black')
+        self.plotButton.pack(side=tk.LEFT, padx=10)
         
-        self.connect_button = tk.Button(self.status_frame, text="Connect to server", command=self.connect_socket,bg='white', fg='black')
+        self.connect_button = tk.Button(self.status_frame, text="Connect to server", command=self.connect_socket, bg='white', fg='black')
         self.connect_button.pack(side=tk.LEFT, padx=10)
 
-        self.disconnect_button = tk.Button(self.status_frame, text="Disconnect to server", command=self.disconnect_socket,bg='white', fg='black')
+        self.disconnect_button = tk.Button(self.status_frame, text="Disconnect to server", command=self.disconnect_socket,bg='white', fg='black', state=tk.DISABLED)
         self.disconnect_button.pack(side=tk.LEFT, padx=10)
 
-        # self.imagebutton = tk.Button(self.status_frame, text="Get image", command=self.request_image,bg='white', fg='black')
-        # self.imagebutton.pack(side=tk.LEFT, padx=10)
+        self.telemetryButton = tk.Button(self.status_frame, text="Telemetry currently off", command=self.toggleTelem, bg='red', fg='white')
+        self.telemetryButton.pack(side=tk.LEFT, padx=10)
+
+        self.imageButton = tk.Button(self.status_frame, text="Camera currently off", command=self.toggleCamera, bg='red', fg='white')
+        self.imageButton.pack(side=tk.LEFT, padx=10)
         
         # tabs
         tabs = tk.ttk.Notebook(master)
@@ -122,12 +125,7 @@ class TCPClientApp:
         self.panel.image = img
         self.panel.pack()
 
-    def update_image(self,filename):
-        img = ImageTk.PhotoImage(Image.open(filename).resize((320, 200), Image.Resampling.LANCZOS))
-        self.panel.configure(image=img)
-        self.panel.image = img
-
-    ###### live plots ######
+    ###### plots ######
 
     def create_plot(self, master, frame=None):
         # Add title to the plot
@@ -151,41 +149,6 @@ class TCPClientApp:
         # Plot visibility flag
         self.plot_visible = True
 
-    def toggle_plot(self):
-        if self.plot_visible:
-            self.canvas_widget.pack_forget()
-            self.toggle_button.config(text="Show Voltage Monitor")
-        else:
-            self.canvas_widget.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
-            self.toggle_button.config(text="Hide Voltage Monitor")
-        self.plot_visible = not self.plot_visible
-
-    ###### sockets ######
-
-    def connect_socket(self):
-        # TCP
-        server_name = self.HOST # For the raspberry pi
-        server_TCP_port = self.PORT
-        CommonData.client_TCP_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        #Set up a TCP connection with the server
-        CommonData.client_TCP_socket.connect((server_name, server_TCP_port))
-        CommonData.TCPSTATUS = True
-        self.connect_button.configure(bg="green",fg="white")
-        self.disconnect_button.configure(bg="red",fg="white")
-        print("TCP client running...")
-        print("Connecting to server at IP: ", server_name, " PORT: ", server_TCP_port)
-
-    def disconnect_socket(self):
-        CommonData.client_TCP_socket.close()
-        CommonData.TCPSTATUS = False
-        self.connect_button.configure(bg="white",fg="black")
-        self.disconnect_button.configure(bg="white",fg="black")
-        print("Closing Socket...")
-
-    # def update_response_label(self, text):
-    #     if self.response_label.winfo_exists():
-    #         self.response_label.config(text=text)
-
     # def update_plot(self, data):
     #     try:
     #         voltage = float(data.split()[-1][:-1])  # Extract voltage value
@@ -206,6 +169,34 @@ class TCPClientApp:
     #     except ValueError as e:
     #         print(f'Error parsing data: {e}')
 
+    ###### sockets ######
+
+    def connect_socket(self):
+        # TCP
+        server_name = self.HOST # For the raspberry pi
+        server_TCP_port = self.PORT
+        CommonData.client_TCP_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        #Set up a TCP connection with the server
+        CommonData.client_TCP_socket.connect((server_name, server_TCP_port))
+        CommonData.TCPSTATUS = True
+        self.connect_button.configure(bg="green",fg="white")
+        self.connect_button.configure(state=tk.DISABLED)
+        self.disconnect_button.configure(bg="red",fg="white")
+        self.disconnect_button.configure(state=tk.NORMAL)
+        print("TCP client running...")
+        print("Connecting to server at IP: ", server_name, " PORT: ", server_TCP_port)
+
+    def disconnect_socket(self):
+        CommonData.client_TCP_socket.close()
+        CommonData.TCPSTATUS = False
+        self.connect_button.configure(bg="white",fg="black")
+        self.connect_button.configure(state=tk.NORMAL)
+        self.disconnect_button.configure(bg="white",fg="black")
+        self.disconnect_button.configure(state=tk.DISABLED)
+        print("Closing Socket...")
+
+    ###### telemetry ######
+
     def get_data_format(self):
         self.dataFormat = pd.read_csv('dataFormat.csv', header=None)
         for i in range(CommonData.telemetryParameters):
@@ -222,14 +213,15 @@ class TCPClientApp:
             tk.Label(self.frame1_left, text=self.dataFormat[0][i], bg='lightgray').grid(row=(1+i%15), column=(2*(i//15)), padx=10, pady=2)
         # add data
         LiveUpdatesTelemetry.update_data_table(data, self.frame1_left, self.dataFormat)
+    
+    ###### live updates ######
 
     def start_live_updates(self):
         self.queue = queue.Queue()
         LiveUpdatesTelemetry(self.queue,
                             self.current_packet,
                             self.dataFormat,
-                            self.frame1_left,
-                            self.running).start()
+                            self.frame1_left).start()
         LiveUpdatesCamera(self.queue,
                         self.frame1_right,
                         self.panel).start()
@@ -240,6 +232,36 @@ class TCPClientApp:
             msg = self.queue.get_nowait()
         except queue.Empty:
             print("Queue is empty")
+
+    ###### toggles ######
+
+    def toggleTelem(self):
+        if CommonData.runTelemetry:
+            CommonData.runTelemetry = False
+            self.telemetryButton.config(text="Telemetry currently off")
+            self.telemetryButton.config(bg="red",fg="white")
+        else:
+            CommonData.runTelemetry = True
+            self.telemetryButton.config(text="Telemetry currently on")
+            self.telemetryButton.config(bg="green",fg="white")
+    
+    def toggleCamera(self):
+        if CommonData.runCamera:
+            CommonData.runCamera = False
+            self.imageButton.config(text="Camera currently off")
+            self.imageButton.config(bg="red",fg="white")
+        else:
+            CommonData.runCamera = True
+            self.imageButton.config(text="Camera currently on")
+            self.imageButton.config(bg="green",fg="white")
+    def togglePlot(self):
+        if self.plot_visible:
+            self.canvas_widget.pack_forget()
+            self.toggle_button.config(text="Show Voltage Monitor")
+        else:
+            self.canvas_widget.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+            self.toggle_button.config(text="Hide Voltage Monitor")
+        self.plot_visible = not self.plot_visible
 
 ############ Main ############
 

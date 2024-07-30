@@ -11,3 +11,7 @@ class CommonData:
     telemetryParameters: int
 
     TCPSTATUS: bool = False
+
+    runTelemetry: bool = False
+
+    runCamera: bool = False
