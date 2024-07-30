@@ -14,17 +14,14 @@ from MessagePack import MessagePack
 from LiveUpdatesTelemetry import LiveUpdatesTelemetry
 from LiveUpdatesCamera import LiveUpdatesCamera
 from CommonData import CommonData
+from PortCommunication import PortCommunication
 
 ############ class ############
 class TCPClientApp:
 
 ############ Initializer ############
 
-    def __init__(self, master, HOST = "155.198.40.229", PORT = 12000):
-
-        # TCP info
-        self.HOST = HOST
-        self.PORT = PORT
+    def __init__(self, master):
 
         # other variables
         CommonData.telemetryParameters = 35
@@ -56,10 +53,10 @@ class TCPClientApp:
         self.disconnect_button = tk.Button(self.status_frame, text="Disconnect to server", command=self.disconnect_socket,bg='white', fg='black', state=tk.DISABLED)
         self.disconnect_button.pack(side=tk.LEFT, padx=10)
 
-        self.telemetryButton = tk.Button(self.status_frame, text="Telemetry currently off", command=self.toggleTelem, bg='red', fg='white')
+        self.telemetryButton = tk.Button(self.status_frame, text="Telemetry currently off", command=self.toggleTelem, bg='red', fg='white', state=tk.DISABLED)
         self.telemetryButton.pack(side=tk.LEFT, padx=10)
 
-        self.imageButton = tk.Button(self.status_frame, text="Camera currently off", command=self.toggleCamera, bg='red', fg='white')
+        self.imageButton = tk.Button(self.status_frame, text="Camera currently off", command=self.toggleCamera, bg='red', fg='white', state=tk.DISABLED)
         self.imageButton.pack(side=tk.LEFT, padx=10)
         
         # tabs
@@ -170,27 +167,34 @@ class TCPClientApp:
     ###### sockets ######
 
     def connect_socket(self):
-        # TCP
-        server_name = self.HOST # For the raspberry pi
-        server_TCP_port = self.PORT
-        CommonData.client_TCP_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        #Set up a TCP connection with the server
-        CommonData.client_TCP_socket.connect((server_name, server_TCP_port))
-        CommonData.TCPSTATUS = True
+        # Set up a TCP connection with the server
+        PortCommunication.open_TCP()
+        # Update server connection buttons
         self.connect_button.configure(bg="green",fg="white")
         self.connect_button.configure(state=tk.DISABLED)
         self.disconnect_button.configure(bg="red",fg="white")
         self.disconnect_button.configure(state=tk.NORMAL)
+        # Update server request buttons
+        self.telemetryButton.configure(state=tk.NORMAL)
+        self.imageButton.configure(state=tk.NORMAL)
+        # Print connection status
         print("TCP client running...")
-        print("Connecting to server at IP: ", server_name, " PORT: ", server_TCP_port)
+        print("Connecting to server at IP: ", CommonData.server_name, " PORT: ", CommonData.server_TCP_port)
 
     def disconnect_socket(self):
-        CommonData.client_TCP_socket.close()
-        CommonData.TCPSTATUS = False
+        # Update server connection buttons
         self.connect_button.configure(bg="white",fg="black")
         self.connect_button.configure(state=tk.NORMAL)
         self.disconnect_button.configure(bg="white",fg="black")
         self.disconnect_button.configure(state=tk.DISABLED)
+        # Update server request buttons
+        self.toggleTelem(False)
+        self.telemetryButton.configure(state=tk.DISABLED)
+        self.toggleCamera(False)
+        self.imageButton.configure(state=tk.DISABLED)
+        # Close the TCP connection
+        PortCommunication.close_TCP()
+        # Print connection status
         print("Closing Socket...")
 
     ###### telemetry ######
@@ -242,25 +246,39 @@ class TCPClientApp:
 
     ###### toggles ######
 
-    def toggleTelem(self):
-        if CommonData.runTelemetry:
+    def __toggleOff(self, button, name):
+        button.config(text=name+ " currently off")
+        button.config(bg="red", fg="white")
+
+    def __toggleOn(self, button, name):
+        button.config(text=name+ " currently on")
+        button.config(bg="green", fg="white")
+
+    def toggleTelem(self, flag=True):
+        name = "Telemetry"
+        if flag:
+            if CommonData.runTelemetry:
+                CommonData.runTelemetry = False
+                self.__toggleOff(self.telemetryButton, name)
+            else:
+                CommonData.runTelemetry = True
+                self.__toggleOn(self.telemetryButton, name)
+        else:
             CommonData.runTelemetry = False
-            self.telemetryButton.config(text="Telemetry currently off")
-            self.telemetryButton.config(bg="red",fg="white")
-        else:
-            CommonData.runTelemetry = True
-            self.telemetryButton.config(text="Telemetry currently on")
-            self.telemetryButton.config(bg="green",fg="white")
+            self.__toggleOff(self.telemetryButton, name)
     
-    def toggleCamera(self):
-        if CommonData.runCamera:
-            CommonData.runCamera = False
-            self.imageButton.config(text="Camera currently off")
-            self.imageButton.config(bg="red",fg="white")
+    def toggleCamera(self, flag=True):
+        name = "Camera"
+        if flag:
+            if CommonData.runCamera:
+                CommonData.runCamera = False
+                self.__toggleOff(self.imageButton, name)
+            else:
+                CommonData.runCamera = True
+                self.__toggleOn(self.imageButton, name)
         else:
-            CommonData.runCamera = True
-            self.imageButton.config(text="Camera currently on")
-            self.imageButton.config(bg="green",fg="white")
+            CommonData.runCamera = False
+            self.__toggleOff(self.imageButton, name)
 
     def togglePlot(self):
         if self.plot_visible:

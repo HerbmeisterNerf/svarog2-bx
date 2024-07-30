@@ -2,7 +2,7 @@
 import socket
 
 ############ custom libraries ############
-
+from CommonData import CommonData
 
 ############ class ############
 class PortCommunication:
@@ -14,6 +14,8 @@ class PortCommunication:
 
 ############ Methods ############
 
+    ###### UDP sockets ######
+
     def open_UDP(client_UDP_port: int) -> socket.socket:
         UDP_info = ("", client_UDP_port)
         client_UDP_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -23,6 +25,17 @@ class PortCommunication:
 
     def close_UDP(client_UDP_socket: socket.socket) -> None:
         client_UDP_socket.close()
+
+    ###### TCP sockets ######
+
+    def open_TCP() -> None:
+        CommonData.client_TCP_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        CommonData.client_TCP_socket.connect((CommonData.server_name, CommonData.server_TCP_port))
+        CommonData.TCPSTATUS = True
+    
+    def close_TCP() -> None:
+        CommonData.client_TCP_socket.close()
+        CommonData.TCPSTATUS = False
 
 ############ Main ############
 

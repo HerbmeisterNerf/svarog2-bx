@@ -6,15 +6,25 @@ import socket
 @dataclass
 class CommonData:
 
+    # sockets
+
     client_TCP_socket: socket.socket
 
     telemetryParameters: int
+
+    # UDP ports
 
     camera_port_UDP: int = 15000
 
     telemetry_port_UDP: int = 11000
 
-    comms_port_TCP: int = 12000
+    # TCP ports and server name
+
+    server_TCP_port: int = 12000
+
+    server_name: str = "155.198.40.229"
+
+    # Flags
 
     TCPSTATUS: bool = False
 
