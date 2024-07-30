@@ -21,17 +21,14 @@ class LiveUpdatesTelemetry(threading.Thread):
         self.frame1_left = frame1_left
 
     def run(self):
-        while True:
-            if CommonData.runTelemetry:
-                time.sleep(1)
-                try:
-                    if CommonData.TCPSTATUS == True:
-                        self.__request_telemetry()   
-                        LiveUpdatesTelemetry.update_data_table(self.__formatdata(), self.frame1_left, self.dataFormat)
-                    else:
-                        print("Not connected to server")
-                except Exception as e:
-                    print(f'An exception occurred: {e}')
+        try:
+            if CommonData.TCPSTATUS == True:
+                self.__request_telemetry()   
+                LiveUpdatesTelemetry.update_data_table(self.__formatdata(), self.frame1_left, self.dataFormat)
+            else:
+                print("Not connected to server")
+        except Exception as e:
+            print(f'An exception occurred: {e}')
 
     def __request_telemetry(self):
         self.__open_UDP_telem() 

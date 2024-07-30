@@ -22,17 +22,14 @@ class LiveUpdatesCamera(threading.Thread):
         self.panel = panel
 
     def run(self):
-        while True:
-            if CommonData.runCamera:
-                time.sleep(10)
-                try:
-                    if CommonData.TCPSTATUS == True:
-                        self.__request_image()
-                        self.__update_image()
-                    else:
-                        print("Not connected to server")
-                except Exception as e:
-                    print(f'An exception occurred: {e}')
+        try:
+            if CommonData.TCPSTATUS == True:
+                self.__request_image()
+                self.__update_image()
+            else:
+                print("Not connected to server")
+        except Exception as e:
+            print(f'An exception occurred: {e}')
 
     def __request_image(self):
         self.filename = "receivedimage.jpg"

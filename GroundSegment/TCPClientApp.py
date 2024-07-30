@@ -218,20 +218,29 @@ class TCPClientApp:
 
     def start_live_updates(self):
         self.queue = queue.Queue()
-        LiveUpdatesTelemetry(self.queue,
-                            self.current_packet,
-                            self.dataFormat,
-                            self.frame1_left).start()
-        LiveUpdatesCamera(self.queue,
-                        self.frame1_right,
-                        self.panel).start()
-        self.master.after(100, self.process_queue)
+        self.queue.put_nowait(self.processTelemetry())
+        self.queue.put_nowait(self.processCamera())
 
-    def process_queue(self):
+    def processTelemetry(self):
         try:
-            msg = self.queue.get_nowait()
+            if CommonData.runTelemetry:
+                LiveUpdatesTelemetry(self.queue,
+                                    self.current_packet,
+                                    self.dataFormat,
+                                    self.frame1_left).start()
+            self.queue.put_nowait(self.master.after(1000, self.processTelemetry))
         except queue.Empty:
-            print("Queue is empty")
+            self.queue.put_nowait(self.master.after(1000, self.processTelemetry))
+        
+    def processCamera(self):
+        try:
+            if CommonData.runCamera:
+                LiveUpdatesCamera(self.queue,
+                                self.frame1_right,
+                                self.panel).start()
+            self.queue.put_nowait(self.master.after(10000, self.processCamera))
+        except queue.Empty:
+            self.queue.put_nowait(self.master.after(10000, self.processCamera))
 
     ###### toggles ######
 
@@ -254,6 +263,7 @@ class TCPClientApp:
             CommonData.runCamera = True
             self.imageButton.config(text="Camera currently on")
             self.imageButton.config(bg="green",fg="white")
+
     def togglePlot(self):
         if self.plot_visible:
             self.canvas_widget.pack_forget()
