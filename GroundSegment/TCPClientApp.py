@@ -13,6 +13,7 @@ import queue
 ############ custom libraries ############
 from MessagePack import MessagePack
 from LiveUpdatesTelemetry import LiveUpdatesTelemetry
+from LiveUpdatesCamera import LiveUpdatesCamera
 from CommonData import CommonData
 
 ############ class ############
@@ -56,8 +57,8 @@ class TCPClientApp:
         self.disconnect_button = tk.Button(self.status_frame, text="Disconnect to server", command=self.disconnect_socket,bg='white', fg='black')
         self.disconnect_button.pack(side=tk.LEFT, padx=10)
 
-        self.imagebutton = tk.Button(self.status_frame, text="Get image", command=self.request_image,bg='white', fg='black')
-        self.imagebutton.pack(side=tk.LEFT, padx=10)
+        # self.imagebutton = tk.Button(self.status_frame, text="Get image", command=self.request_image,bg='white', fg='black')
+        # self.imagebutton.pack(side=tk.LEFT, padx=10)
         
         # tabs
         tabs = tk.ttk.Notebook(master)
@@ -115,14 +116,14 @@ class TCPClientApp:
 
     ###### live images ######
 
-    def add_image_camera(self, frame,filename):
+    def add_image_camera(self, frame, filename):
         img = ImageTk.PhotoImage(Image.open(filename).resize((500, 175), Image.Resampling.LANCZOS))
         self.panel = tk.Label(frame, image=img)
         self.panel.image = img
         self.panel.pack()
 
     def update_image(self,filename):
-        img = ImageTk.PhotoImage(Image.open(filename).resize((500, 175), Image.Resampling.LANCZOS))
+        img = ImageTk.PhotoImage(Image.open(filename).resize((320, 200), Image.Resampling.LANCZOS))
         self.panel.configure(image=img)
         self.panel.image = img
 
@@ -270,6 +271,9 @@ class TCPClientApp:
                             self.dataFormat,
                             self.frame1_left,
                             self.running).start()
+        LiveUpdatesCamera(self.queue,
+                        self.frame1_right,
+                        self.panel).start()
         self.master.after(100, self.process_queue)
 
     def process_queue(self):

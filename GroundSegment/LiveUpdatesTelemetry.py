@@ -27,8 +27,6 @@ class LiveUpdatesTelemetry(threading.Thread):
         while self.running:
             time.sleep(1)
             try:
-                # if self.TCPSTATUS == 1:
-                # if os.environ["TCPSTATUS"] == "1":
                 if CommonData.TCPSTATUS == True:
                     self.__request_telemetry()   
                     LiveUpdatesTelemetry.update_data_table(self.__formatdata(), self.frame1_left, self.dataFormat)
