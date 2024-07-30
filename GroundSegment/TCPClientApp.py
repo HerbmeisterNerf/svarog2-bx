@@ -8,6 +8,8 @@ import matplotlib.dates as mdates
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import pandas as pd
 import queue
+import os
+from tkterminal import Terminal
 
 ############ custom libraries ############
 from MessagePack import MessagePack
@@ -47,6 +49,7 @@ class TCPClientApp:
         exit_button = tk.Button(self.status_frame, text="Exit", command=master.destroy) 
         exit_button.pack(pady=20)
 
+        # other buttons
         self.plotButton = tk.Button(self.status_frame, text="Hide Voltage Monitor", command=self.togglePlot, bg='white', fg='black')
         self.plotButton.pack(side=tk.LEFT, padx=10)
         
@@ -65,17 +68,23 @@ class TCPClientApp:
         # tabs
         tabs = tk.ttk.Notebook(master)
         tabs.pack(expand=1, fill='both')
-        self.frame1 = tk.Frame(tabs, bg='khaki1')
-        self.frame2 = tk.Frame(tabs, bg='lightgray')
-        tabs.add(self.frame1, text='Tab 1')
-        tabs.add(self.frame2, text='Tab 2')
+        self.tab1 = tk.Frame(tabs, bg='khaki1')
+        self.tab2 = tk.Frame(tabs, bg='lightgray')
+        tabs.add(self.tab1, text='Tab 1')
+        tabs.add(self.tab2, text='Tab 2')
 
-        # frames inside frame1
-        self.frame1_left = tk.Frame(self.frame1, bg='lightgray')
-        self.frame1_right = tk.Frame(self.frame1)
+        # frames inside tab1
+        self.frame1_left = tk.Frame(self.tab1, bg='lightgray')
+        self.frame1_right = tk.Frame(self.tab1)
+        # self.frame1_terminal = tk.Frame(self.tab1, bg='lightgray')
 
         self.frame1_left.grid(row=0, column=0, padx=10, pady=10)
         self.frame1_right.grid(row=0, column=1, padx=10, pady=10)
+        # self.frame1_terminal.grid(row=1, column=0, columnspan=2, padx=10, pady=10)
+
+        # create terminal
+        terminal = Terminal(bg = 'black', fg = 'white', pady=5, padx=5)
+        terminal.pack(expand=True, fill='both')
 
         # create list of data
         self.get_data_format()
@@ -89,7 +98,7 @@ class TCPClientApp:
         self.fig, self.ax = plt.subplots()
         self.xs, self.ys = [], []
         self.line, = self.ax.plot(self.xs, self.ys, color='green')
-        self.create_plot(master, self.frame2)
+        self.create_plot(master, self.tab2)
 
         ###### Receive data ######
         # Start the thread
@@ -105,7 +114,7 @@ class TCPClientApp:
 
     def add_logo(self, master):
         original_image = Image.open('logo.png')
-        resized_image = original_image.resize((900, 275), Image.Resampling.LANCZOS)
+        resized_image = original_image.resize((450, 137), Image.Resampling.LANCZOS)
         self.logo = ImageTk.PhotoImage(resized_image)
 
         # Frame for the logo with a visible background
