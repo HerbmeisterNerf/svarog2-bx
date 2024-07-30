@@ -6,9 +6,12 @@ import time
 
 ############ custom libraries ############
 from CommonData import CommonData
+from PortCommunication import PortCommunication
 
 ############ class ############
 class LiveUpdatesTelemetry(threading.Thread):
+
+############ Initializer ############
 
     def __init__(self, queue, 
                 current_packet,
@@ -19,6 +22,8 @@ class LiveUpdatesTelemetry(threading.Thread):
         self.current_packet = current_packet
         self.dataFormat = dataFormat
         self.frame1_left = frame1_left
+
+############ Methods ############
 
     def run(self):
         try:
@@ -31,25 +36,14 @@ class LiveUpdatesTelemetry(threading.Thread):
             print(f'An exception occurred: {e}')
 
     def __request_telemetry(self):
-        self.__open_UDP_telem() 
+        client_UDP_socket = PortCommunication.open_UDP(CommonData.telemetry_port_UDP) 
         message = "telemetry"
-        # self.client_TCP_socket.send(message.encode())
         CommonData.client_TCP_socket.send(message.encode())
-        bytes_read = self.client_UDP_socket_telem.recvfrom(1024)
+        bytes_read = client_UDP_socket.recvfrom(1024)
         telem =  bytes_read[0].decode("utf-8")
         print(telem)
         self.__process_telemetry(telem)
-        self.__close_UDP_telem()
-    
-    def __open_UDP_telem(self):
-        # UDP
-        client_UDP_port = 11000
-        UDP_info = ("", client_UDP_port)
-        self.client_UDP_socket_telem = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.client_UDP_socket_telem.bind(UDP_info)
-
-    def __close_UDP_telem(self):
-        self.client_UDP_socket_telem.close()
+        PortCommunication.close_UDP(client_UDP_socket)
 
     def __process_telemetry(self,string):
         variables = string.split(",")

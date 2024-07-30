@@ -14,7 +14,7 @@ class PortCommunication:
 
 ############ Methods ############
 
-    def open_UDP(client_UDP_port: int) -> socket:
+    def open_UDP(client_UDP_port: int) -> socket.socket:
         UDP_info = ("", client_UDP_port)
         client_UDP_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         client_UDP_socket.bind(UDP_info)
