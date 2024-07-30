@@ -11,6 +11,9 @@ from PortCommunication import PortCommunication
 
 ############ class ############
 class LiveUpdatesCamera(threading.Thread):
+    '''
+    This class is responsible for requesting a new image and updating it in the GUI
+    '''
 
 ############ Initializer ############
 

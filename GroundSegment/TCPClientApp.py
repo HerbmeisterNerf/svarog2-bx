@@ -18,6 +18,9 @@ from PortCommunication import PortCommunication
 
 ############ class ############
 class TCPClientApp:
+    '''
+    This class contains the GUI for the TCP client
+    '''
 
 ############ Initializer ############
 
@@ -246,37 +249,37 @@ class TCPClientApp:
 
     ###### toggles ######
 
-    def __toggleOff(self, button, name):
+    def __toggleOff(self, button, name: str):
         button.config(text=name+ " currently off")
         button.config(bg="red", fg="white")
 
-    def __toggleOn(self, button, name):
+    def __toggleOn(self, button, name: str):
         button.config(text=name+ " currently on")
         button.config(bg="green", fg="white")
 
     def toggleTelem(self, flag=True):
         name = "Telemetry"
-        if flag:
+        if flag: # nominal behaviour
             if CommonData.runTelemetry:
                 CommonData.runTelemetry = False
                 self.__toggleOff(self.telemetryButton, name)
             else:
                 CommonData.runTelemetry = True
                 self.__toggleOn(self.telemetryButton, name)
-        else:
+        else: # forced shut down
             CommonData.runTelemetry = False
             self.__toggleOff(self.telemetryButton, name)
     
     def toggleCamera(self, flag=True):
         name = "Camera"
-        if flag:
+        if flag: # nominal behaviour
             if CommonData.runCamera:
                 CommonData.runCamera = False
                 self.__toggleOff(self.imageButton, name)
             else:
                 CommonData.runCamera = True
                 self.__toggleOn(self.imageButton, name)
-        else:
+        else: # forced shut down
             CommonData.runCamera = False
             self.__toggleOff(self.imageButton, name)
 

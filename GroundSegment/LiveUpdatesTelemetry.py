@@ -10,6 +10,9 @@ from PortCommunication import PortCommunication
 
 ############ class ############
 class LiveUpdatesTelemetry(threading.Thread):
+    '''
+    This class is responsible for requesting a new telemtry package and updating it in the GUI
+    '''
 
 ############ Initializer ############
 

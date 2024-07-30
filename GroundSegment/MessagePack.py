@@ -1,5 +1,8 @@
 
 class MessagePack:
+    '''
+    This class is used to pack the data into a message format
+    '''
 
     def __init__(self, message='0' * 311):
          self.package_count = int(message[0:8], 2)

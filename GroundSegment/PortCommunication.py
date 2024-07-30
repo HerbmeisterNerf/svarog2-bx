@@ -6,6 +6,9 @@ from CommonData import CommonData
 
 ############ class ############
 class PortCommunication:
+    '''
+    This class is responsible for opening and closing the UDP and TCP sockets between the server and the client
+    '''
 
 ############ Initializer ############
 
