@@ -35,6 +35,7 @@ class TCPClientApp:
         self.master = master
         master.title("TCP Client")
         master.configure(bg='black')
+        self.TelemFreqVal = tk.DoubleVar()
 
         ###### GUI Elements ######
 
@@ -44,6 +45,9 @@ class TCPClientApp:
         # Frame for connection status and toggle button
         self.status_frame = tk.Frame(master, bg='black')
         self.status_frame.pack(pady=10)
+
+        self.button_frame = tk.Frame(master,bg='white')
+        self.button_frame.pack(pady=50)
 
         # close app button
         exit_button = tk.Button(self.status_frame, text="Exit", command=master.destroy) 
@@ -59,11 +63,43 @@ class TCPClientApp:
         self.disconnect_button = tk.Button(self.status_frame, text="Disconnect to server", command=self.disconnect_socket,bg='white', fg='black', state=tk.DISABLED)
         self.disconnect_button.pack(side=tk.LEFT, padx=10)
 
+        self.telemFrequency = tk.Scale(self.status_frame,from_=1.2, to=10, orient="horizontal",resolution=0.1,variable=self.TelemFreqVal,label="Telemetry intervals (s)")
+        self.telemFrequency.pack(side=tk.TOP,padx=10)
+
         self.telemetryButton = tk.Button(self.status_frame, text="Telemetry currently off", command=self.toggleTelem, bg='red', fg='white', state=tk.DISABLED)
         self.telemetryButton.pack(side=tk.LEFT, padx=10)
 
         self.imageButton = tk.Button(self.status_frame, text="Camera currently off", command=self.toggleCamera, bg='red', fg='white', state=tk.DISABLED)
         self.imageButton.pack(side=tk.LEFT, padx=10)
+
+        #Action buttons
+        self.H1Button = tk.Button(self.button_frame,text="Heater 1",  command=self.actuateH1 ,state=tk.DISABLED)
+        self.H1Button.pack(side=tk.LEFT, padx=10)
+        self.H2Button = tk.Button(self.button_frame,text="Heater 2",  command=self.actuateH2 ,state=tk.DISABLED)
+        self.H2Button.pack(side=tk.LEFT, padx=10)
+        self.H3Button = tk.Button(self.button_frame,text="Heater 3",   command=self.actuateH3 ,state=tk.DISABLED)
+        self.H3Button.pack(side=tk.LEFT, padx=10)
+        self.H4Button = tk.Button(self.button_frame,text="Heater 4",   command=self.actuateH4 ,state=tk.DISABLED)
+        self.H4Button.pack(side=tk.LEFT, padx=10)
+        self.H5Button = tk.Button(self.button_frame,text="Heater 5",   command=self.actuateH5 ,state=tk.DISABLED)
+        self.H5Button.pack(side=tk.LEFT, padx=10)
+        self.H6Button = tk.Button(self.button_frame,text="Heater 6",   command=self.actuateH6 ,state=tk.DISABLED)
+        self.H6Button.pack(side=tk.LEFT, padx=10)
+        self.BW1Button = tk.Button(self.button_frame,text="Burn-wire 1",   command=self.actuateBW1 ,state=tk.DISABLED)
+        self.BW1Button.pack(side=tk.LEFT, padx=10)
+        self.BW2Button = tk.Button(self.button_frame,text="Burn-wire 2",   command=self.actuateBW2 ,state=tk.DISABLED)
+        self.BW2Button.pack(side=tk.LEFT, padx=10)
+        self.MOTButton = tk.Button(self.button_frame,text="Motor",  command=self.actuateMOT ,state=tk.DISABLED)
+        self.MOTButton.pack(side=tk.LEFT, padx=10)
+        self.C1Button = tk.Button(self.button_frame,text="Secondary 1",  command=self.actuateC1 ,state=tk.DISABLED)
+        self.C1Button.pack(side=tk.LEFT, padx=10)
+        self.C2Button = tk.Button(self.button_frame,text="Secondary 2",  command=self.actuateC2 ,state=tk.DISABLED)
+        self.C2Button.pack(side=tk.LEFT, padx=10)
+        self.C3Button = tk.Button(self.button_frame,text="Secondary 3",  command=self.actuateC3 ,state=tk.DISABLED)
+        self.C3Button.pack(side=tk.LEFT, padx=10)
+        self.C4Button = tk.Button(self.button_frame,text="Secondary 4",  command=self.actuateC4 ,state=tk.DISABLED)
+        self.C4Button.pack(side=tk.LEFT, padx=10)
+        
         
         # tabs
         tabs = tk.ttk.Notebook(master)
@@ -74,17 +110,21 @@ class TCPClientApp:
         tabs.add(self.tab2, text='Tab 2')
 
         # frames inside tab1
+        
         self.frame1_left = tk.Frame(self.tab1, bg='lightgray')
         self.frame1_right = tk.Frame(self.tab1)
-        # self.frame1_terminal = tk.Frame(self.tab1, bg='lightgray')
-
+        #self.frame1_terminal = tk.Frame(self.tab1, bg='lightgray')
+        self.timestamp = tk.StringVar()
+        self.timestamp.set('timestamp')
+        self.imgtimestamp = tk.Label(self.frame1_right, textvariable = self.timestamp)
+        self.imgtimestamp.pack()
         self.frame1_left.grid(row=0, column=0, padx=10, pady=10)
         self.frame1_right.grid(row=0, column=1, padx=10, pady=10)
-        # self.frame1_terminal.grid(row=1, column=0, columnspan=2, padx=10, pady=10)
+        #self.frame1_terminal.grid(row=1, column=0, columnspan=2, padx=10, pady=10)
 
         # create terminal
-        terminal = Terminal(bg = 'black', fg = 'white', pady=5, padx=5)
-        terminal.pack(expand=True, fill='both')
+        #terminal = Terminal(bg = 'black', fg = 'white', pady=5, padx=5)
+        #terminal.pack(expand=True, fill='both')
 
         # create list of data
         self.get_data_format()
@@ -127,7 +167,7 @@ class TCPClientApp:
     ###### live images ######
 
     def add_image_camera(self, frame, filename):
-        img = ImageTk.PhotoImage(Image.open(filename).resize((500, 175), Image.Resampling.LANCZOS))
+        img = ImageTk.PhotoImage(Image.open(filename).resize((1000, 350), Image.Resampling.LANCZOS))
         self.panel = tk.Label(frame, image=img)
         self.panel.image = img
         self.panel.pack()
@@ -186,6 +226,20 @@ class TCPClientApp:
         self.connect_button.configure(state=tk.DISABLED)
         self.disconnect_button.configure(bg="red",fg="white")
         self.disconnect_button.configure(state=tk.NORMAL)
+        self.H1Button.configure(state=tk.NORMAL)
+        self.H2Button.configure(state=tk.NORMAL)
+        self.H3Button.configure(state=tk.NORMAL)
+        self.H4Button.configure(state=tk.NORMAL)
+        self.H5Button.configure(state=tk.NORMAL)
+        self.H6Button.configure(state=tk.NORMAL)
+        self.BW1Button.configure(state=tk.NORMAL)
+        self.BW2Button.configure(state=tk.NORMAL)
+        self.MOTButton.configure(state=tk.NORMAL)
+        self.C1Button.configure(state=tk.NORMAL)
+        self.C2Button.configure(state=tk.NORMAL)
+        self.C3Button.configure(state=tk.NORMAL)
+        self.C4Button.configure(state=tk.NORMAL)
+
         # Update server request buttons
         self.telemetryButton.configure(state=tk.NORMAL)
         self.imageButton.configure(state=tk.NORMAL)
@@ -204,6 +258,19 @@ class TCPClientApp:
         self.telemetryButton.configure(state=tk.DISABLED)
         self.toggleCamera(False)
         self.imageButton.configure(state=tk.DISABLED)
+        self.H1Button.configure(state=tk.DISABLED)
+        self.H2Button.configure(state=tk.DISABLED)
+        self.H3Button.configure(state=tk.DISABLED)
+        self.H4Button.configure(state=tk.DISABLED)
+        self.H5Button.configure(state=tk.DISABLED)
+        self.H6Button.configure(state=tk.DISABLED)
+        self.BW1Button.configure(state=tk.DISABLED)
+        self.BW2Button.configure(state=tk.DISABLED)
+        self.MOTButton.configure(state=tk.DISABLED)
+        self.C1Button.configure(state=tk.DISABLED)
+        self.C2Button.configure(state=tk.DISABLED)
+        self.C3Button.configure(state=tk.DISABLED)
+        self.C4Button.configure(state=tk.DISABLED)
         # Close the TCP connection
         PortCommunication.close_TCP()
         # Print connection status
@@ -246,19 +313,19 @@ class TCPClientApp:
                                     self.current_packet,
                                     self.dataFormat,
                                     self.frame1_left).start()
-            self.queue.put_nowait(self.master.after(1000, self.processTelemetry))
+            self.queue.put_nowait(self.master.after(int(self.TelemFreqVal.get()*1000), self.processTelemetry))
         except queue.Empty:
-            self.queue.put_nowait(self.master.after(1000, self.processTelemetry))
+            self.queue.put_nowait(self.master.after(int(self.TelemFreqVal.get()*1000), self.processTelemetry))
         
     def processCamera(self):
         try:
             if CommonData.runCamera:
                 LiveUpdatesCamera(self.queue,
                                 self.frame1_right,
-                                self.panel).start()
-            self.queue.put_nowait(self.master.after(10000, self.processCamera))
+                                self.panel,self.timestamp).start()
+            self.queue.put_nowait(self.master.after(30000, self.processCamera))
         except queue.Empty:
-            self.queue.put_nowait(self.master.after(10000, self.processCamera))
+            self.queue.put_nowait(self.master.after(30000, self.processCamera))
 
     ###### toggles ######
 
@@ -311,7 +378,45 @@ class TCPClientApp:
         else: # forced shut down
             CommonData.runCamera = False
             self.__toggleOff(self.imageButton, name)
-
+    def actuateH1(self):
+        pin = "start:H1end:"
+        CommonData.client_TCP_socket.send(pin.encode())
+    def actuateH2(self):
+        pin = "start:H2end:"
+        CommonData.client_TCP_socket.send(pin.encode())
+    def actuateH3(self):
+        pin = "start:H3end:"
+        CommonData.client_TCP_socket.send(pin.encode())
+    def actuateH4(self):
+        pin = "start:H4end:"
+        CommonData.client_TCP_socket.send(pin.encode())
+    def actuateH5(self):
+        pin = "start:H5end:"
+        CommonData.client_TCP_socket.send(pin.encode())
+    def actuateH6(self):
+        pin = "start:H6end:"
+        CommonData.client_TCP_socket.send(pin.encode())
+    def actuateBW1(self):
+        pin = "start:B1end:"
+        CommonData.client_TCP_socket.send(pin.encode())
+    def actuateBW2(self):
+        pin = "start:B2end:"
+        CommonData.client_TCP_socket.send(pin.encode())
+    def actuateMOT(self):
+        pin = "start:MOend:"
+        CommonData.client_TCP_socket.send(pin.encode())
+    def actuateC1(self):
+        pin = "start:C1end:"
+        CommonData.client_TCP_socket.send(pin.encode())
+    def actuateC2(self):
+        pin = "start:C2end:"
+        CommonData.client_TCP_socket.send(pin.encode())
+    def actuateC3(self):
+        pin = "start:C3end:"
+        CommonData.client_TCP_socket.send(pin.encode())
+    def actuateC4(self):
+        pin = "start:C4end:"
+        CommonData.client_TCP_socket.send(pin.encode())    
     def togglePlot(self):
         '''
         TBD

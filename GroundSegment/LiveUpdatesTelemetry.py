@@ -40,18 +40,16 @@ class LiveUpdatesTelemetry(threading.Thread):
 
     def __request_telemetry(self):
         client_UDP_socket = PortCommunication.open_UDP(CommonData.telemetry_port_UDP) 
-        message = "telemetry"
+        message = "start:TEend:"
         CommonData.client_TCP_socket.send(message.encode())
         bytes_read = client_UDP_socket.recvfrom(1024)
         telem =  bytes_read[0].decode("utf-8")
-        print(telem)
         self.__process_telemetry(telem)
         PortCommunication.close_UDP(client_UDP_socket)
 
     def __process_telemetry(self,string):
         variables = string.split(",")
         for each in variables:
-            print(each)
             var,val = each.split("=")
             setattr(self.current_packet,var,val)
 

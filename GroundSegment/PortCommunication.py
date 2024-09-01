@@ -22,6 +22,7 @@ class PortCommunication:
     def open_UDP(client_UDP_port: int) -> socket.socket:
         UDP_info = ("", client_UDP_port)
         client_UDP_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        client_UDP_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         client_UDP_socket.bind(UDP_info)
 
         return client_UDP_socket

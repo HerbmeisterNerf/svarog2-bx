@@ -1,11 +1,11 @@
-Voltage 28v (V),26,27,29,30
-Voltage 5v (V),4,4.5,5.5,6
-Voltage 12v (V),11,11.5,12.5,13
-Voltage 24v (V),22,23,25,26
-Current 5v (mA),0,0,2500,3000
-Current 12v (mA),0,0,1200,1500
-Current 24v (mA),0,0,500,800
-eBox Temp,-50,-40,50,80
+Voltage 28V (V),26,27,29,30
+Voltage 5V (V),4,4.5,5.5,6
+Voltage 12V (V),11,11.5,12.5,13
+Voltage 24V (V),22,23,25,26
+Current 5V (mA),0,0,2500,3000
+Current 12V (mA),0,0,1200,1500
+Current 24V (mA),0,0,500,800
+eBox Temp,-50,-20,30,80
 Pressure,10,100,150,200
 IMU Mag x,1,2,8,10
 IMU Mag y,1,2,8,10
@@ -13,23 +13,23 @@ IMU Mag z,1,2,8,10
 IMU Acc x,1,2,8,10
 IMU Acc y,1,2,8,10
 IMU Acc z,1,2,8,10
-Heater 1 status,0,0.5,2,2
-Heater 2 status,0,0.5,2,2
-Heater 3 status,0,0.5,2,2
-Heater 4 status,0,0.5,2,2
-Heater 5 status,0,0.5,2,2
-Heater 6 status,0,0.5,2,2
-Temp 1 status,0,0.5,2,2
-Temp 2 status,0,0.5,2,2
-Temp 3 status,0,0.5,2,2
-Temp 4 status,0,0.5,2,2
-Temp 5 status,0,0.5,2,2
-Temp 6 status,0,0.5,2,2
-BW 1 status,0,0.5,2,2
-BW 2 status,0,0.5,2,2
-Current Lim status,0,0.5,2,2
-RPI 1 status,0,0.5,2,2
-RPI 2 status,0,0.5,2,2
-RPI 3 status,0,0.5,2,2
-RPI 4 status,0,0.5,2,2
+Heater 1 status,0,0,1,1
+Heater 2 status,0,0,1,1
+Heater 3 status,0,0,1,1
+Heater 4 status,0,0,1,1
+Heater 5 status,0,0,1,1
+Heater 6 status,0,0,1,1
+Temp 1 status,-50,-20,30,80
+Temp 2 status,-50,-20,30,80
+Temp 3 status,-50,-20,30,80
+Temp 4 status,-50,-20,30,80
+Temp 5 status,-50,-20,30,80
+Temp 6 status,-50,-20,30,80
+BW 1 status,0,0,1,1
+BW 2 status,0,0,1,1
+Current Lim status,0,0,1,1
+RPI 1 status,0,0,1,1
+RPI 2 status,0,0,1,1
+RPI 3 status,0,0,1,1
+RPI 4 status,0,0,1,1
 Motor speed,0,0,850,900

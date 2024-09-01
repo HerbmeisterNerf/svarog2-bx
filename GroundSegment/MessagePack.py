@@ -1,10 +1,5 @@
-
 class MessagePack:
-    '''
-    This class is used to pack the data into a message format
-    '''
-
-    def __init__(self, message='0' * 311):
+    def __init__(self, message='0' * 314):
          self.package_count = int(message[0:8], 2)
          self.timestamp = int(message[8:40], 2)
          self.voltage_28V = int(message[40:48], 2)
@@ -45,48 +40,50 @@ class MessagePack:
          self.recording_mode_flag = int(message[302:305], 2)
          self.deployment_mode_flag = int(message[305:308], 2)
          self.auto_mode_flag = int(message[308:311], 2)
+         self.motor_fault = int(message[311:314],2)
 
     def generateString(self):
         bits = [
            "package_count=",f'{self.package_count}',
-           "timestamp=",f'{self.timestamp}',
-           "voltage_28V=",f'{self.voltage_28V}',
-           "voltage_5V=",f'{self.voltage_5V}',
-            "voltage_12V=",f'{self.voltage_12V}',
-            "voltage_24V=",f'{self.voltage_24V}',
-            "current_5V=",f'{self.current_5V}',
-            "current_12V=",f'{self.current_12V}',
-            "current_24V=",f'{self.current_24V}',
-            "ebox_temp=",f'{self.ebox_temp}',
-            "pressure=",f'{self.pressure}',
-            "imu_mag_x=",f'{self.imu_mag_x}',
-            "imu_mag_y=",f'{self.imu_mag_y}',
-            "imu_mag_z=",f'{self.imu_mag_z}',
-            "imu_acc_x=",f'{self.imu_acc_x}',
-            "imu_acc_y=",f'{self.imu_acc_y}',
-            "imu_acc_z=",f'{self.imu_acc_z}',
-            "heater_1_status=",f'{self.heater_1_status}',
-            "heater_2_status=",f'{self.heater_2_status}',
-            "heater_3_status=",f'{self.heater_3_status}',
-            "heater_4_status=",f'{self.heater_4_status}',
-            "heater_5_status=",f'{self.heater_5_status}',
-            "heater_6_status=",f'{self.heater_6_status}',
-            "temp_1_status=",f'{self.temp_1_status}',
-            "temp_2_status=",f'{self.temp_2_status}',
-            "temp_3_status=",f'{self.temp_3_status}',
-            "temp_4_status=",f'{self.temp_4_status}',
-            "temp_5_status=",f'{self.temp_5_status}',
-            "temp_6_status=",f'{self.temp_6_status}',
-            "burn_wire_1_status=",f'{self.burn_wire_1_status}',
-            "burn_wire_2_status=",f'{self.burn_wire_2_status}',
-            "current_limiting_status=",f'{self.current_limiting_status}',
-            "rpi_1_status=",f'{self.rpi_1_status}',
-            "rpi_2_status=",f'{self.rpi_2_status}',
-            "rpi_3_status=",f'{self.rpi_3_status}',
-            "rpi_4_status=",f'{self.rpi_4_status}',
-            "motor_speed=",f'{self.motor_speed}',
-            "recording_mode_flag=",f'{self.recording_mode_flag}',
-            "deployment_mode_flag=",f'{self.deployment_mode_flag}',
-            "auto_mode_flag=",f'{self.auto_mode_flag}',
+           ",timestamp=",f'{self.timestamp}',
+           ",voltage_28V=",f'{self.voltage_28V}',
+           ",voltage_5V=",f'{self.voltage_5V}',
+            ",voltage_12V=",f'{self.voltage_12V}',
+            ",voltage_24V=",f'{self.voltage_24V}',
+            ",current_5V=",f'{self.current_5V}',
+            ",current_12V=",f'{self.current_12V}',
+            ",current_24V=",f'{self.current_24V}',
+            ",ebox_temp=",f'{self.ebox_temp}',
+            ",pressure=",f'{self.pressure}',
+            ",imu_mag_x=",f'{self.imu_mag_x}',
+            ",imu_mag_y=",f'{self.imu_mag_y}',
+            ",imu_mag_z=",f'{self.imu_mag_z}',
+            ",imu_acc_x=",f'{self.imu_acc_x}',
+            ",imu_acc_y=",f'{self.imu_acc_y}',
+            ",imu_acc_z=",f'{self.imu_acc_z}',
+            ",heater_1_status=",f'{self.heater_1_status}',
+            ",heater_2_status=",f'{self.heater_2_status}',
+            ",heater_3_status=",f'{self.heater_3_status}',
+            ",heater_4_status=",f'{self.heater_4_status}',
+            ",heater_5_status=",f'{self.heater_5_status}',
+            ",heater_6_status=",f'{self.heater_6_status}',
+            ",temp_1_status=",f'{self.temp_1_status}',
+            ",temp_2_status=",f'{self.temp_2_status}',
+            ",temp_3_status=",f'{self.temp_3_status}',
+            ",temp_4_status=",f'{self.temp_4_status}',
+            ",temp_5_status=",f'{self.temp_5_status}',
+            ",temp_6_status=",f'{self.temp_6_status}',
+            ",burn_wire_1_status=",f'{self.burn_wire_1_status}',
+            ",burn_wire_2_status=",f'{self.burn_wire_2_status}',
+            ",current_limiting_status=",f'{self.current_limiting_status}',
+            ",rpi_1_status=",f'{self.rpi_1_status}',
+            ",rpi_2_status=",f'{self.rpi_2_status}',
+            ",rpi_3_status=",f'{self.rpi_3_status}',
+            ",rpi_4_status=",f'{self.rpi_4_status}',
+            ",motor_speed=",f'{self.motor_speed}',
+            ",recording_mode_flag=",f'{self.recording_mode_flag}',
+            ",deployment_mode_flag=",f'{self.deployment_mode_flag}',
+            ",auto_mode_flag=",f'{self.auto_mode_flag}',
+            ",motor_fault=",f'{self.motor_fault}',
         ]
-        return ','.join(bits)
+        return ''.join(bits)

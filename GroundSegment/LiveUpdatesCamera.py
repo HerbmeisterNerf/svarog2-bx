@@ -3,6 +3,7 @@ import threading
 import socket
 import tkinter as tk
 import time
+import datetime
 from PIL import Image, ImageTk 
 
 ############ custom libraries ############
@@ -20,12 +21,13 @@ class LiveUpdatesCamera(threading.Thread):
     def __init__(self,
                 queue,
                 frame1_right,
-                panel):
+                panel,imgtimestamp):
 
         super().__init__()
         self.queue = queue
         self.frame1_right = frame1_right
         self.panel = panel
+        self.timestamp = imgtimestamp
 
 ############ Methods ############
 
@@ -42,29 +44,30 @@ class LiveUpdatesCamera(threading.Thread):
     def __request_image(self):
         self.filename = "receivedimage.jpg"
         client_UDP_socket = PortCommunication.open_UDP(CommonData.camera_port_UDP)
-        message = "image"
+        message = "start:IMend:"
         CommonData.client_TCP_socket.send(message.encode())
         print("Receiving image...")
     
-        msg, add = client_UDP_socket.recvfrom(1024)
+        msg, add = client_UDP_socket.recvfrom(4096)
         total_size = int(msg.split(b'\n')[0])  # Receive the size of the image
         print("Size: ", total_size)
         received = 0
 
         with open(self.filename, 'wb') as f:
             while received < total_size:
-                bytes_read = client_UDP_socket.recvfrom(1024)[0]
+                bytes_read = client_UDP_socket.recvfrom(4096)[0]
 
                 if not bytes_read:
                     break  # The socket is closed
                 f.write(bytes_read)
                 received += len(bytes_read)
 
-        print("Image has been received." , bytes_read)
+        print("Image has been received.")
+        self.timestamp.set(str(datetime.datetime.now().time()) )
         PortCommunication.close_UDP(client_UDP_socket)
 
     def __update_image(self):
-        img = ImageTk.PhotoImage(Image.open(self.filename).resize((320, 200), Image.Resampling.LANCZOS))
+        img = ImageTk.PhotoImage(Image.open(self.filename).resize((1440, 800), Image.Resampling.LANCZOS))
         self.panel.configure(image=img)
         self.panel.image = img
 
