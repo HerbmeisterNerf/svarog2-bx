@@ -36,6 +36,8 @@ class TCPClientApp:
         master.title("TCP Client")
         master.configure(bg='black')
         self.TelemFreqVal = tk.DoubleVar()
+        self.ImgFreqVal = tk.DoubleVar()
+        self.imgbaudrate = tk.DoubleVar()
 
         ###### GUI Elements ######
 
@@ -68,6 +70,12 @@ class TCPClientApp:
 
         self.telemetryButton = tk.Button(self.status_frame, text="Telemetry currently off", command=self.toggleTelem, bg='red', fg='white', state=tk.DISABLED)
         self.telemetryButton.pack(side=tk.LEFT, padx=10)
+
+        self.imgFrequency = tk.Scale(self.status_frame,from_=10, to=60, orient="horizontal",resolution=1,variable=self.ImgFreqVal,label="Image intervals (s)")
+        self.imgFrequency.pack(side=tk.TOP,padx=10)
+
+        self.imgrate = tk.Scale(self.status_frame,from_=32, to=1638, orient="horizontal",resolution=1,variable=self.imgbaudrate,label="bit rate (Kbit/s)")
+        self.imgrate.pack(side=tk.TOP,padx=10)
 
         self.imageButton = tk.Button(self.status_frame, text="Camera currently off", command=self.toggleCamera, bg='red', fg='white', state=tk.DISABLED)
         self.imageButton.pack(side=tk.LEFT, padx=10)
@@ -322,10 +330,10 @@ class TCPClientApp:
             if CommonData.runCamera:
                 LiveUpdatesCamera(self.queue,
                                 self.frame1_right,
-                                self.panel,self.timestamp).start()
-            self.queue.put_nowait(self.master.after(30000, self.processCamera))
+                                self.panel,self.timestamp,round(float(4096/self.imgbaudrate.get()*8/1000),3)).start()
+            self.queue.put_nowait(self.master.after(int(self.ImgFreqVal.get()*1000), self.processCamera))
         except queue.Empty:
-            self.queue.put_nowait(self.master.after(30000, self.processCamera))
+            self.queue.put_nowait(self.master.after(int(self.ImgFreqVal.get()*1000), self.processCamera))
 
     ###### toggles ######
 

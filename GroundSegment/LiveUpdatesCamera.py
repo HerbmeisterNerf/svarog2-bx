@@ -21,13 +21,14 @@ class LiveUpdatesCamera(threading.Thread):
     def __init__(self,
                 queue,
                 frame1_right,
-                panel,imgtimestamp):
+                panel,imgtimestamp,rate):
 
         super().__init__()
         self.queue = queue
         self.frame1_right = frame1_right
         self.panel = panel
         self.timestamp = imgtimestamp
+        self.rate = rate
 
 ############ Methods ############
 
@@ -48,7 +49,8 @@ class LiveUpdatesCamera(threading.Thread):
         CommonData.client_TCP_socket.send(message.encode())
         print("Receiving image...")
     
-        msg, add = client_UDP_socket.recvfrom(4096)
+        msg, add = client_UDP_socket.recvfrom(10)
+        client_UDP_socket.sendto(str(self.rate).encode(),(CommonData.server_name,CommonData.camera_port_UDP))
         total_size = int(msg.split(b'\n')[0])  # Receive the size of the image
         print("Size: ", total_size)
         received = 0
