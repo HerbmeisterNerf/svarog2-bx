@@ -69,7 +69,7 @@ class LiveUpdatesCamera(threading.Thread):
         PortCommunication.close_UDP(client_UDP_socket)
 
     def __update_image(self):
-        img = ImageTk.PhotoImage(Image.open(self.filename).resize((1440, 800), Image.Resampling.LANCZOS))
+        img = ImageTk.PhotoImage(Image.open(self.filename).resize((600, 333), Image.Resampling.LANCZOS))
         self.panel.configure(image=img)
         self.panel.image = img
 

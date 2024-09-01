@@ -95,7 +95,7 @@ class LiveUpdatesTelemetry(threading.Thread):
     def update_data_table(data, frame1_left, dataFormat):
         for i in range(CommonData.telemetryParameters):
             # clear contents
-            tk.Label(frame1_left, text='00000000', bg='lightgray', fg='lightgray').grid(row=(1+i%15), column=(1+2*(i//15)), padx=30, pady=3, rowspan=20)
+            tk.Label(frame1_left, text='00000000', bg='lightgray', fg='lightgray',font=("Arial",7)).grid(row=(1+i%18), column=(1+2*(i//18)), padx=2, pady=2, rowspan=20)
 
             # set contents
             colourFG = 'black'
@@ -108,7 +108,7 @@ class LiveUpdatesTelemetry(threading.Thread):
             else:
                 colourBG = 'green'
                 colourFG = 'white'
-            tk.Label(frame1_left, text=data[i], bg=colourBG, fg=colourFG).grid(row=(1+i%15), column=(1+2*(i//15)), padx=30, pady=3)
+            tk.Label(frame1_left, text=data[i],font=("Arial",7), bg=colourBG, fg=colourFG).grid(row=(1+i%18), column=(1+2*(i//18)), padx=2, pady=2)
 
 ############ Main ############
 
