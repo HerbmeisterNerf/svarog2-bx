@@ -1,5 +1,5 @@
 ############ standard libraries ############
-import socket
+# import socket
 import tkinter as tk
 from tkinter import ttk
 from PIL import Image, ImageTk
@@ -8,7 +8,6 @@ import matplotlib.dates as mdates
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import pandas as pd
 import queue
-import os
 from tkterminal import Terminal
 
 ############ custom libraries ############
@@ -39,11 +38,11 @@ class TCPClientApp:
         self.TelemFreqVal = tk.DoubleVar()
         self.ImgFreqVal = tk.DoubleVar()
         self.imgbaudrate = tk.DoubleVar()
+        self.tableLabels = []
 
         ###### GUI Elements ######
 
         # Add logo
-        #
         #Main two frames
         self.left_panel = tk.Frame(master,width=300,height=500,bg="grey")
         self.left_panel.grid(row=0,column=0)
@@ -57,13 +56,10 @@ class TCPClientApp:
         self.left_button_panel = tk.Frame(self.left_panel,width=300,height=100)
         self.left_button_panel.grid_propagate(False)
         self.left_button_panel.grid(column=0,row=0,sticky=tk.N)
-        
 
         self.left_data_panel = tk.Frame(self.left_panel,width=300,height=400)
         self.left_data_panel.grid(column=0,row=1,sticky="se")
         self.left_data_panel.grid_propagate(False)
-        
-
 
         self.right_button_panel = tk.Frame(self.right_panel,width=600,height=130)
         self.right_button_panel.grid(column=0,row=0,sticky=tk.N)
@@ -85,21 +81,7 @@ class TCPClientApp:
         self.important_panel = tk.Frame(self.right_button_panel,width=150,height=130,bg="red")
         self.important_panel.grid(column=2,row=0)
         self.important_panel.pack_propagate(False)
-        
-        # Frame for connection status and toggle button
-        # self.status_frame = tk.Frame(master, bg='black')
-        # self.status_frame.pack(pady=10)
 
-        # self.button_frame = tk.Frame(master,bg='white')
-        # self.button_frame.pack(pady=50)
-
-        # # close app button
-        # exit_button = tk.Button(self.status_frame, text="Exit", command=master.destroy) 
-        # exit_button.pack(pady=20)
-
-        # # other buttons
-        # self.plotButton = tk.Button(self.status_frame, text="Hide Voltage Monitor", command=self.togglePlot, bg='white', fg='black')
-        # self.plotButton.pack(side=tk.LEFT, padx=10)
         self.add_logo(self.left_button_panel)
         self.connect_button = tk.Button(self.left_button_panel, text="Connect to server",height=1,font=("Arial",8), command=self.connect_socket, bg='white', fg='black')
         self.connect_button.grid(row=1,column=0)
@@ -122,7 +104,7 @@ class TCPClientApp:
         self.imageButton = tk.Button(self.left_button_panel, text="Camera currently off", height=1,font=("Arial",8),command=self.toggleCamera, bg='red', fg='white', state=tk.DISABLED)
         self.imageButton.grid(row=2,column=1)
 
-        # #Action buttons
+        # Action buttons
         self.H1Button = tk.Button(self.actions_panel,text="Heater 1",font=("Arial",7),  command=self.actuateH1 ,state=tk.DISABLED)
         self.H1Button.grid(column=0,row=0,padx=4,pady=4)
         self.H2Button = tk.Button(self.actions_panel,text="Heater 2",font=("Arial",7),  command=self.actuateH2 ,state=tk.DISABLED)
@@ -357,11 +339,19 @@ class TCPClientApp:
         for i in range(CommonData.telemetryParameters):
                 data.insert(i, 0.0)
 
-        # add text
+        # add text, 
         for i in range(CommonData.telemetryParameters):
-            tk.Label(self.left_data_panel, font=("Arial", 7), text=self.dataFormat.iloc[i, 0], bg='lightgray').grid(row=(1+i%18), column=(2*(i//18)), padx=2, pady=2)
+            # add text
+            label = tk.Label(self.left_data_panel, font=("Arial", 7), text=self.dataFormat.iloc[i, 0])
+            label.grid(row=(1+i%18), column=(2*(i//18)), padx=2, pady=2, columnspan=1)
+            # prep data columns
+            self.tableLabels.insert(i, tk.Label(self.left_data_panel, fg='black'))
+            self.tableLabels[i].grid(row=(1+i%18), column=(1+2*(i//18)), padx=2, pady=2, columnspan=1)
+            # add data
+            self.tableLabels[i].configure(text=data[i], font=("Arial",7))
+
         # add data
-        LiveUpdatesTelemetry.update_data_table(data, self.left_data_panel, self.dataFormat)
+        # LiveUpdatesTelemetry.update_data_table(data, self.tableLabels, self.dataFormat)
     
     ###### live updates ######
 
@@ -380,7 +370,7 @@ class TCPClientApp:
                 LiveUpdatesTelemetry(self.queue,
                                     self.current_packet,
                                     self.dataFormat,
-                                    self.left_data_panel).start()
+                                    self.tableLabels).start()
             self.queue.put_nowait(self.master.after(int(self.TelemFreqVal.get()*1000), self.processTelemetry))
         except queue.Empty:
             self.queue.put_nowait(self.master.after(int(self.TelemFreqVal.get()*1000), self.processTelemetry))

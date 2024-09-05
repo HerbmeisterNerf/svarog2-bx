@@ -19,16 +19,13 @@ class LiveUpdatesTelemetry(threading.Thread):
     def __init__(self, queue, 
                 current_packet,
                 dataFormat,
-                frame1_left):
+                tableLabels):
         super().__init__()
         self.queue = queue
         self.current_packet = current_packet
         self.dataFormat = dataFormat
-        self.frame1_left = frame1_left
-        self.tableLabels = []
-        for i in range(CommonData.telemetryParameters):
-            self.tableLabels.insert(i, tk.Label(self.frame1_left, bg='lightgray', fg='black'))
-            self.tableLabels[i].grid(row=(1+i%18), column=(1+2*(i//18)), padx=2, pady=2, rowspan=20)
+        # self.frame1_left = frame1_left
+        self.tableLabels = tableLabels
 
 ############ Methods ############
 
@@ -96,21 +93,21 @@ class LiveUpdatesTelemetry(threading.Thread):
         data.insert(34,float(self.current_packet.motor_speed))
         return data
 
-    def update_data_table(data, frame1_left, dataFormat):
+    def update_data_table(data, tableLabels, dataFormat):
         for i in range(CommonData.telemetryParameters):
             # clear contents
-            tk.Label(frame1_left, text='00000000', bg='lightgray', fg='lightgray',font=("Arial",7)).grid(row=(1+i%18), column=(1+2*(i//18)), padx=2, pady=2, rowspan=20)
+            # tableLabels[i].configure(text='00000000', bg='lightgray', fg='lightgray', font=("Arial",7))
 
             # set contents
             colourBG, colourFG = update_data_table_colours(i, data, dataFormat)
 
-            tk.Label(frame1_left, text=data[i], font=("Arial",7), bg=colourBG, fg=colourFG).grid(row=(1+i%18), column=(1+2*(i//18)), padx=2, pady=2)
+            tableLabels[i].configure(text=data[i], font=("Arial",7), bg=colourBG, fg=colourFG)
 
     def __update_data_table(self):
         data = self.__formatdata()
         for i in range(CommonData.telemetryParameters):
             #clear contents
-            self.tableLabels[i].configure(text='00000000', bg='lightgray', fg='lightgray',font=("Arial",7))
+            # self.tableLabels[i].configure(text='00000000', bg='lightgray', fg='lightgray', font=("Arial",7))
 
             #set contents
             colourBG, colourFG = update_data_table_colours(i, data, self.dataFormat)
