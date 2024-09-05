@@ -25,6 +25,10 @@ class LiveUpdatesTelemetry(threading.Thread):
         self.current_packet = current_packet
         self.dataFormat = dataFormat
         self.frame1_left = frame1_left
+        self.tableLabels = []
+        for i in range(CommonData.telemetryParameters):
+            self.tableLabels.insert(i, tk.Label(self.frame1_left, bg='lightgray', fg='black'))
+            self.tableLabels[i].grid(row=(1+i%18), column=(1+2*(i//18)), padx=2, pady=2, rowspan=20)
 
 ############ Methods ############
 
@@ -32,7 +36,7 @@ class LiveUpdatesTelemetry(threading.Thread):
         try:
             if CommonData.TCPSTATUS == True:
                 self.__request_telemetry()   
-                LiveUpdatesTelemetry.update_data_table(self.__formatdata(), self.frame1_left, self.dataFormat)
+                self.__update_data_table()
             else:
                 print("Not connected to server")
         except Exception as e:
@@ -98,17 +102,35 @@ class LiveUpdatesTelemetry(threading.Thread):
             tk.Label(frame1_left, text='00000000', bg='lightgray', fg='lightgray',font=("Arial",7)).grid(row=(1+i%18), column=(1+2*(i//18)), padx=2, pady=2, rowspan=20)
 
             # set contents
-            colourFG = 'black'
-            if data[i] < dataFormat.iloc[i, 1] or data[i] > dataFormat.iloc[i, 4]:
-                colourBG = 'red'
-            elif dataFormat.iloc[i, 1] < data[i] and data[i] < dataFormat.iloc[i, 2]:
-                colourBG = 'orange'
-            elif dataFormat.iloc[i, 3] < data[i] and data[i] < dataFormat.iloc[i, 4]:
-                colourBG = 'orange'
-            else:
-                colourBG = 'green'
-                colourFG = 'white'
-            tk.Label(frame1_left, text=data[i],font=("Arial",7), bg=colourBG, fg=colourFG).grid(row=(1+i%18), column=(1+2*(i//18)), padx=2, pady=2)
+            colourBG, colourFG = update_data_table_colours(i, data, dataFormat)
+
+            tk.Label(frame1_left, text=data[i], font=("Arial",7), bg=colourBG, fg=colourFG).grid(row=(1+i%18), column=(1+2*(i//18)), padx=2, pady=2)
+
+    def __update_data_table(self):
+        data = self.__formatdata()
+        for i in range(CommonData.telemetryParameters):
+            #clear contents
+            self.tableLabels[i].configure(text='00000000', bg='lightgray', fg='lightgray',font=("Arial",7))
+
+            #set contents
+            colourBG, colourFG = update_data_table_colours(i, data, self.dataFormat)
+
+            self.tableLabels[i].configure(text=data[i], font=("Arial",7), bg=colourBG, fg=colourFG)
+
+def update_data_table_colours(i, data, dataFormat):
+    colourFG = 'black'
+
+    if data[i] < dataFormat.iloc[i, 1] or data[i] > dataFormat.iloc[i, 4]:
+        colourBG = 'red'
+    elif dataFormat.iloc[i, 1] < data[i] and data[i] < dataFormat.iloc[i, 2]:
+        colourBG = 'orange'
+    elif dataFormat.iloc[i, 3] < data[i] and data[i] < dataFormat.iloc[i, 4]:
+        colourBG = 'orange'
+    else:
+        colourBG = 'green'
+        colourFG = 'white'
+    
+    return colourBG, colourFG
 
 ############ Main ############
 

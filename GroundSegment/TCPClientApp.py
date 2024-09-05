@@ -359,7 +359,7 @@ class TCPClientApp:
 
         # add text
         for i in range(CommonData.telemetryParameters):
-            tk.Label(self.left_data_panel,font=("Arial",7), text=self.dataFormat.iloc[i, 0], bg='lightgray').grid(row=(1+i%18), column=(2*(i//18)), padx=2, pady=2)
+            tk.Label(self.left_data_panel, font=("Arial", 7), text=self.dataFormat.iloc[i, 0], bg='lightgray').grid(row=(1+i%18), column=(2*(i//18)), padx=2, pady=2)
         # add data
         LiveUpdatesTelemetry.update_data_table(data, self.left_data_panel, self.dataFormat)
     
