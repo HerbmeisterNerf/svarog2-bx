@@ -118,18 +118,6 @@ class TCPClientApp:
         self.H6Button = tk.Button(self.actions_panel,text="Heater 6",font=("Arial",7),  command=self.actuateH6 ,state=tk.DISABLED)
         self.H6Button.grid(column=5,row=0,padx=2,pady=4)
 
-
-
-        # self.H2Button = tk.Button(self.button_frame,text="Heater 2",  command=self.actuateH2 ,state=tk.DISABLED)
-        # self.H2Button.pack(side=tk.LEFT, padx=10)
-        # self.H3Button = tk.Button(self.button_frame,text="Heater 3",   command=self.actuateH3 ,state=tk.DISABLED)
-        # self.H3Button.pack(side=tk.LEFT, padx=10)
-        # self.H4Button = tk.Button(self.button_frame,text="Heater 4",   command=self.actuateH4 ,state=tk.DISABLED)
-        # self.H4Button.pack(side=tk.LEFT, padx=10)
-        # self.H5Button = tk.Button(self.button_frame,text="Heater 5",   command=self.actuateH5 ,state=tk.DISABLED)
-        # self.H5Button.pack(side=tk.LEFT, padx=10)
-        # self.H6Button = tk.Button(self.button_frame,text="Heater 6",   command=self.actuateH6 ,state=tk.DISABLED)
-        # self.H6Button.pack(side=tk.LEFT, padx=10)
         self.BW1Button = tk.Button(self.actions_panel,text="BW 1",font=("Arial",7),   command=self.actuateBW1 ,state=tk.DISABLED)
         self.BW1Button.grid(column=0,row=1,padx=2,pady=4)
         self.BW2Button = tk.Button(self.actions_panel,text="BW 2",font=("Arial",7),   command=self.actuateBW2 ,state=tk.DISABLED)
@@ -145,52 +133,28 @@ class TCPClientApp:
         self.C3Button.grid(column=2,row=2,padx=2,pady=4)
         self.C4Button = tk.Button(self.actions_panel,text="C4 EN",font=("Arial",7),  command=self.actuateC4 ,state=tk.DISABLED)
         self.C4Button.grid(column=3,row=2,padx=2,pady=4)
-        
-        
-        # # tabs
-        # tabs = tk.ttk.Notebook(master)
-        # tabs.pack(expand=1, fill='both')
-        # self.tab1 = tk.Frame(tabs, bg='khaki1')
-        # self.tab2 = tk.Frame(tabs, bg='lightgray')
-        # tabs.add(self.tab1, text='Tab 1')
-        # tabs.add(self.tab2, text='Tab 2')
 
-        # # frames inside tab1
-        
-        # self.frame1_left = tk.Frame(self.tab1, bg='lightgray')
-        # self.frame1_right = tk.Frame(self.tab1)
-        # #self.frame1_terminal = tk.Frame(self.tab1, bg='lightgray')
         self.timestamp = tk.StringVar()
         self.timestamp.set('timestamp')
         self.imgtimestamp = tk.Label(self.right_pic_panel, textvariable = self.timestamp)
         self.imgtimestamp.pack()
-        # self.frame1_left.grid(row=0, column=0, padx=10, pady=10)
-        # self.frame1_right.grid(row=0, column=1, padx=10, pady=10)
-        # #self.frame1_terminal.grid(row=1, column=0, columnspan=2, padx=10, pady=10)
-
-        # # create terminal
-        # #terminal = Terminal(bg = 'black', fg = 'white', pady=5, padx=5)
-        # #terminal.pack(expand=True, fill='both')
 
         # # create list of data
         self.get_data_format()
         self.create_data_table()
 
         # # create image from camera
-        self.add_image_camera(self.right_pic_panel,"camera.png")
+        self.add_image_camera(self.right_pic_panel,"logoPlaceholder.png")
 
         ###### Receive data ######
         # Start the thread
         self.start_live_updates()
 
-        # Setup date format on x-axis
-        # self.ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
-        # self.fig.autofmt_xdate()
-
 ############ Methods ############
 
     def exitfunc(self):
-        self.disconnect_socket()
+        if CommonData.runTelemetry or CommonData.runCamera:
+            self.disconnect_socket()
         self.master.destroy()
 
     ###### making it look nice ######
