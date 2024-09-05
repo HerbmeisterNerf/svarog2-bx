@@ -99,11 +99,11 @@ class LiveUpdatesTelemetry(threading.Thread):
 
             # set contents
             colourFG = 'black'
-            if data[i] < dataFormat[1][i] or data[i] > dataFormat[4][i]:
+            if data[i] < dataFormat.iloc[i, 1] or data[i] > dataFormat.iloc[i, 4]:
                 colourBG = 'red'
-            elif dataFormat[1][i] < data[i] and data[i] < dataFormat[2][i]:
+            elif dataFormat.iloc[i, 1] < data[i] and data[i] < dataFormat.iloc[i, 2]:
                 colourBG = 'orange'
-            elif dataFormat[3][i] < data[i] and data[i] < dataFormat[4][i]:
+            elif dataFormat.iloc[i, 3] < data[i] and data[i] < dataFormat.iloc[i, 4]:
                 colourBG = 'orange'
             else:
                 colourBG = 'green'

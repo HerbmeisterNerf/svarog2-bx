@@ -350,7 +350,7 @@ class TCPClientApp:
         self.dataFormat = pd.read_csv('dataFormat.csv', header=None)
         for i in range(CommonData.telemetryParameters):
             for j in range(4):
-                self.dataFormat[j+1][i] = float(self.dataFormat[j+1][i])
+                self.dataFormat.iloc[i, j+1] = float(self.dataFormat.iloc[i, j+1])
 
     def create_data_table(self):
         data = []
@@ -359,7 +359,7 @@ class TCPClientApp:
 
         # add text
         for i in range(CommonData.telemetryParameters):
-            tk.Label(self.left_data_panel,font=("Arial",7), text=self.dataFormat[0][i], bg='lightgray').grid(row=(1+i%18), column=(2*(i//18)), padx=2, pady=2)
+            tk.Label(self.left_data_panel,font=("Arial",7), text=self.dataFormat.iloc[i, 0], bg='lightgray').grid(row=(1+i%18), column=(2*(i//18)), padx=2, pady=2)
         # add data
         LiveUpdatesTelemetry.update_data_table(data, self.left_data_panel, self.dataFormat)
     
