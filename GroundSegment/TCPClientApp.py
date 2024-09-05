@@ -179,13 +179,6 @@ class TCPClientApp:
         # # create image from camera
         self.add_image_camera(self.right_pic_panel,"camera.png")
 
-        # # create plots
-        # plt.style.use('dark_background')
-        # self.fig, self.ax = plt.subplots()
-        # self.xs, self.ys = [], []
-        # self.line, = self.ax.plot(self.xs, self.ys, color='green')
-        # self.create_plot(master, self.tab2)
-
         ###### Receive data ######
         # Start the thread
         self.start_live_updates()
@@ -197,8 +190,8 @@ class TCPClientApp:
 ############ Methods ############
 
     def exitfunc(self):
+        self.disconnect_socket()
         self.master.destroy()
-
 
     ###### making it look nice ######
 
@@ -206,10 +199,6 @@ class TCPClientApp:
         original_image = Image.open('logo.png')
         resized_image = original_image.resize((150, 45), Image.Resampling.LANCZOS)
         self.logo = ImageTk.PhotoImage(resized_image)
-
-        # Frame for the logo with a visible background
-        #self.logo_frame = tk.Frame(master, bg='white')
-        #self.logo_frame.pack(fill=tk.X)
 
         self.logo_label = tk.Label(frame, image=self.logo)
         self.logo_label.grid(column=0,row=0)
@@ -222,55 +211,12 @@ class TCPClientApp:
         self.panel.image = img
         self.panel.pack()
 
-    ###### plots ######
-
-    def create_plot(self, master, frame=None):
-        # Add title to the plot
-        self.ax.set_title("Voltage Monitor", color='white')
-
-        # Add horizontal grid lines
-        self.ax.yaxis.grid(True, linestyle='--', alpha=0.7)
-
-        # Set labels color
-        self.ax.xaxis.label.set_color('white')
-        self.ax.yaxis.label.set_color('white')
-
-        # Set tick parameters color
-        self.ax.tick_params(axis='x', colors='white')
-        self.ax.tick_params(axis='y', colors='white')
-
-        self.canvas = FigureCanvasTkAgg(self.fig, master = frame)
-        self.canvas_widget = self.canvas.get_tk_widget()
-        self.canvas_widget.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
-
-        # Plot visibility flag
-        self.plot_visible = True
-
-    # def update_plot(self, data):
-    #     try:
-    #         voltage = float(data.split()[-1][:-1])  # Extract voltage value
-    #         current_time = datetime.datetime.now()  # Use datetime object
-    #         self.ys.append(voltage)
-    #         self.xs.append(current_time)
-
-    #         # Maintain a rolling window of the last 20 data points
-    #         if len(self.ys) > 20:
-    #             self.ys.pop(0)
-    #             self.xs.pop(0)
-
-    #         self.line.set_data(self.xs, self.ys)
-    #         self.ax.relim()
-    #         self.ax.autoscale_view()
-
-    #         self.canvas.draw()
-    #     except ValueError as e:
-    #         print(f'Error parsing data: {e}')
-
     ###### sockets ######
 
     def connect_socket(self):
         # Set up a TCP connection with the server
         PortCommunication.open_TCP()
+
         # Update server connection buttons
         self.connect_button.configure(bg="green",fg="white")
         self.connect_button.configure(state=tk.DISABLED)
@@ -303,6 +249,7 @@ class TCPClientApp:
         self.connect_button.configure(state=tk.NORMAL)
         self.disconnect_button.configure(bg="white",fg="black")
         self.disconnect_button.configure(state=tk.DISABLED)
+
         # Update server request buttons
         self.toggleTelem(False)
         self.telemetryButton.configure(state=tk.DISABLED)
@@ -321,6 +268,7 @@ class TCPClientApp:
         self.C2Button.configure(state=tk.DISABLED)
         self.C3Button.configure(state=tk.DISABLED)
         self.C4Button.configure(state=tk.DISABLED)
+
         # Close the TCP connection
         PortCommunication.close_TCP()
         # Print connection status
@@ -335,24 +283,19 @@ class TCPClientApp:
                 self.dataFormat.iloc[i, j+1] = float(self.dataFormat.iloc[i, j+1])
 
     def create_data_table(self):
-        data = []
-        for i in range(CommonData.telemetryParameters):
-                data.insert(i, 0.0)
-
-        # add text, 
         for i in range(CommonData.telemetryParameters):
             # add text
-            label = tk.Label(self.left_data_panel, font=("Arial", 7), text=self.dataFormat.iloc[i, 0])
+            label = tk.Label(self.left_data_panel, font=("Arial", 7))
             label.grid(row=(1+i%18), column=(2*(i//18)), padx=2, pady=2, columnspan=1)
-            # prep data columns
-            self.tableLabels.insert(i, tk.Label(self.left_data_panel, fg='black'))
-            self.tableLabels[i].grid(row=(1+i%18), column=(1+2*(i//18)), padx=2, pady=2, columnspan=1)
-            # add data
-            self.tableLabels[i].configure(text=data[i], font=("Arial",7))
+            label.configure(text=self.dataFormat.iloc[i, 0])
 
-        # add data
-        # LiveUpdatesTelemetry.update_data_table(data, self.tableLabels, self.dataFormat)
-    
+            # prep and save data columns
+            self.tableLabels.insert(i, tk.Label(self.left_data_panel, font=("Arial",7), fg='black'))
+            self.tableLabels[i].grid(row=(1+i%18), column=(1+2*(i//18)), padx=2, pady=2, columnspan=1)
+
+            # add data
+            self.tableLabels[i].configure(text=0.0)
+
     ###### live updates ######
 
     def start_live_updates(self):
@@ -475,18 +418,6 @@ class TCPClientApp:
     def actuateC4(self):
         pin = "start:C4end:"
         CommonData.client_TCP_socket.send(pin.encode())    
-    def togglePlot(self):
-        '''
-        TBD
-        '''
-
-        if self.plot_visible:
-            self.canvas_widget.pack_forget()
-            self.toggle_button.config(text="Show Voltage Monitor")
-        else:
-            self.canvas_widget.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
-            self.toggle_button.config(text="Hide Voltage Monitor")
-        self.plot_visible = not self.plot_visible
 
 ############ Main ############
 

@@ -95,24 +95,18 @@ class LiveUpdatesTelemetry(threading.Thread):
 
     def update_data_table(data, tableLabels, dataFormat):
         for i in range(CommonData.telemetryParameters):
-            # clear contents
-            # tableLabels[i].configure(text='00000000', bg='lightgray', fg='lightgray', font=("Arial",7))
-
             # set contents
             colourBG, colourFG = update_data_table_colours(i, data, dataFormat)
 
-            tableLabels[i].configure(text=data[i], font=("Arial",7), bg=colourBG, fg=colourFG)
+            tableLabels[i].configure(text=data[i], bg=colourBG, fg=colourFG)
 
     def __update_data_table(self):
         data = self.__formatdata()
         for i in range(CommonData.telemetryParameters):
-            #clear contents
-            # self.tableLabels[i].configure(text='00000000', bg='lightgray', fg='lightgray', font=("Arial",7))
-
             #set contents
             colourBG, colourFG = update_data_table_colours(i, data, self.dataFormat)
 
-            self.tableLabels[i].configure(text=data[i], font=("Arial",7), bg=colourBG, fg=colourFG)
+            self.tableLabels[i].configure(text=data[i], bg=colourBG, fg=colourFG)
 
 def update_data_table_colours(i, data, dataFormat):
     colourFG = 'black'
