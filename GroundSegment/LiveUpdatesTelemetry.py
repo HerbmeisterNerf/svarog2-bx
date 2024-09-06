@@ -1,8 +1,5 @@
 ############ standard libraries ############
 import threading
-import socket
-import tkinter as tk
-import time
 
 ############ custom libraries ############
 from CommonData import CommonData
@@ -39,7 +36,7 @@ class LiveUpdatesTelemetry(threading.Thread):
         except Exception as e:
             print(f'An exception occurred: {e}')
 
-    def __request_telemetry(self):
+    def __request_telemetry(self) -> None:
         client_UDP_socket = PortCommunication.open_UDP(CommonData.telemetry_port_UDP) 
         message = "start:TEend:"
         CommonData.client_TCP_socket.send(message.encode())
@@ -48,13 +45,13 @@ class LiveUpdatesTelemetry(threading.Thread):
         self.__process_telemetry(telem)
         PortCommunication.close_UDP(client_UDP_socket)
 
-    def __process_telemetry(self,string):
+    def __process_telemetry(self,string) -> None:
         variables = string.split(",")
         for each in variables:
             var,val = each.split("=")
             setattr(self.current_packet,var,val)
 
-    def __formatdata(self):
+    def __formatdata(self) -> list:
         data = []
         data.insert(0,float(self.current_packet.voltage_28V))
         data.insert(1,float(self.current_packet.voltage_5V))
@@ -93,14 +90,14 @@ class LiveUpdatesTelemetry(threading.Thread):
         data.insert(34,float(self.current_packet.motor_speed))
         return data
 
-    def update_data_table(data, tableLabels, dataFormat):
+    def update_data_table(data, tableLabels, dataFormat) -> None:
         for i in range(CommonData.telemetryParameters):
             # set contents
             colourBG, colourFG = update_data_table_colours(i, data, dataFormat)
 
             tableLabels[i].configure(text=data[i], bg=colourBG, fg=colourFG)
 
-    def __update_data_table(self):
+    def __update_data_table(self) -> None:
         data = self.__formatdata()
         for i in range(CommonData.telemetryParameters):
             #set contents
@@ -108,7 +105,7 @@ class LiveUpdatesTelemetry(threading.Thread):
 
             self.tableLabels[i].configure(text=data[i], bg=colourBG, fg=colourFG)
 
-def update_data_table_colours(i, data, dataFormat):
+def update_data_table_colours(i, data, dataFormat) -> tuple:
     colourFG = 'black'
 
     if data[i] < dataFormat.iloc[i, 1] or data[i] > dataFormat.iloc[i, 4]:

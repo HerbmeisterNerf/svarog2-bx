@@ -1,14 +1,8 @@
 ############ standard libraries ############
-# import socket
 import tkinter as tk
-from tkinter import ttk
 from PIL import Image, ImageTk
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import pandas as pd
 import queue
-from tkterminal import Terminal
 
 ############ custom libraries ############
 from MessagePack import MessagePack

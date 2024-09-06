@@ -1,8 +1,5 @@
 ############ standard libraries ############
 import threading
-import socket
-import tkinter as tk
-import time
 import datetime
 from PIL import Image, ImageTk 
 
@@ -42,7 +39,7 @@ class LiveUpdatesCamera(threading.Thread):
         except Exception as e:
             print(f'An exception occurred: {e}')
 
-    def __request_image(self):
+    def __request_image(self) -> None:
         self.filename = "receivedimage.jpg"
         client_UDP_socket = PortCommunication.open_UDP(CommonData.camera_port_UDP)
         message = "start:IMend:"
@@ -68,7 +65,7 @@ class LiveUpdatesCamera(threading.Thread):
         self.timestamp.set(str(datetime.datetime.now().time()) )
         PortCommunication.close_UDP(client_UDP_socket)
 
-    def __update_image(self):
+    def __update_image(self) -> None:
         img = ImageTk.PhotoImage(Image.open(self.filename).resize((600, 333), Image.Resampling.LANCZOS))
         self.panel.configure(image=img)
         self.panel.image = img
