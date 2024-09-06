@@ -47,7 +47,7 @@ class TCPClientApp:
 
         #Button containment frame
 
-        self.left_button_panel = tk.Frame(self.left_panel,width=300,height=100)
+        self.left_button_panel = tk.Frame(self.left_panel,width=300,height=150)
         self.left_button_panel.grid_propagate(False)
         self.left_button_panel.grid(column=0,row=0,sticky=tk.N)
 
@@ -62,7 +62,6 @@ class TCPClientApp:
         self.right_pic_panel = tk.Frame(self.right_panel,width=600,height=370)
         self.right_pic_panel.grid(column=0,row=1,sticky="se")
         self.right_pic_panel.pack_propagate(False)
-
 
         self.rates_panel = tk.Frame(self.right_button_panel,width=150,height=130)
         self.rates_panel.grid(column=0,row=0)
@@ -97,6 +96,9 @@ class TCPClientApp:
 
         self.imageButton = tk.Button(self.left_button_panel, text="Camera currently off", height=1,font=("Arial",8),command=self.toggleCamera, bg='red', fg='white', state=tk.DISABLED)
         self.imageButton.grid(row=2,column=1)
+
+        self.outputTelemetryButton = tk.Button(self.left_button_panel, text="Telemetry output currently off", height=1,font=("Arial",8),command=self.toggleOutputTelemetry, bg='red', fg='white', state=tk.DISABLED)
+        self.outputTelemetryButton.grid(row=3,column=0)
 
         # Action buttons
         self.H1Button = tk.Button(self.actions_panel,text="Heater 1",font=("Arial",7),  command=self.actuateH1 ,state=tk.DISABLED)
@@ -180,6 +182,7 @@ class TCPClientApp:
         self.connect_button.configure(state=tk.DISABLED)
         self.disconnect_button.configure(bg="red",fg="white")
         self.disconnect_button.configure(state=tk.NORMAL)
+
         self.H1Button.configure(state=tk.NORMAL)
         self.H2Button.configure(state=tk.NORMAL)
         self.H3Button.configure(state=tk.NORMAL)
@@ -197,6 +200,8 @@ class TCPClientApp:
         # Update server request buttons
         self.telemetryButton.configure(state=tk.NORMAL)
         self.imageButton.configure(state=tk.NORMAL)
+        # Update output buttons
+        self.outputTelemetryButton.configure(state=tk.NORMAL)
         # Print connection status
         print("TCP client running...")
         print("Connecting to server at IP: ", CommonData.server_name, " PORT: ", CommonData.server_TCP_port)
@@ -209,10 +214,13 @@ class TCPClientApp:
         self.disconnect_button.configure(state=tk.DISABLED)
 
         # Update server request buttons
+        self.toggleOutputTelemetry(False)
+        self.outputTelemetryButton.configure(state=tk.DISABLED)
         self.toggleTelem(False)
         self.telemetryButton.configure(state=tk.DISABLED)
         self.toggleCamera(False)
         self.imageButton.configure(state=tk.DISABLED)
+
         self.H1Button.configure(state=tk.DISABLED)
         self.H2Button.configure(state=tk.DISABLED)
         self.H3Button.configure(state=tk.DISABLED)
@@ -337,6 +345,25 @@ class TCPClientApp:
         else: # forced shut down
             CommonData.runCamera = False
             self.__toggleOff(self.imageButton, name)
+
+    def toggleOutputTelemetry(self, flag=True):
+        '''
+        Switches the output telemetry on or off
+        '''
+
+        name = "Telemetry output"
+        if flag: # nominal behaviour
+            if CommonData.outputTelemetry:
+                CommonData.outputTelemetry = False
+                self.__toggleOff(self.outputTelemetryButton, name)
+            else:
+                CommonData.outputTelemetry = True
+                self.__toggleOn(self.outputTelemetryButton, name)
+        else: # forced shut down
+            CommonData.outputTelemetry = False
+            self.__toggleOff(self.outputTelemetryButton, name)
+
+    ###### actuators ######
     def actuateH1(self):
         pin = "start:H1end:"
         CommonData.client_TCP_socket.send(pin.encode())

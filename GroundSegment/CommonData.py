@@ -34,3 +34,11 @@ class CommonData:
     runTelemetry: bool = False
 
     runCamera: bool = False
+
+    # Output flags
+
+    outputTelemetry: bool = False
+
+    # Directories
+
+    outputTelemetryDir: str = "telemetry_output"

@@ -1,5 +1,6 @@
 ############ standard libraries ############
 import threading
+import pandas as pd
 
 ############ custom libraries ############
 from CommonData import CommonData
@@ -21,15 +22,96 @@ class LiveUpdatesTelemetry(threading.Thread):
         self.queue = queue
         self.current_packet = current_packet
         self.dataFormat = dataFormat
-        # self.frame1_left = frame1_left
         self.tableLabels = tableLabels
+        self.telemOut_df = pd.DataFrame([[
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+        ]], columns = [[
+            'voltage_28V',
+            'voltage_5V',
+            'voltage_12V',
+            'voltage_24V',
+            'current_5V',
+            'current_12V',
+            'current_24V',
+            'ebox_temp',
+            'pressure',
+            'imu_mag_x',
+            'imu_mag_y',
+            'imu_mag_z',
+            'imu_acc_x',
+            'imu_acc_y',
+            'imu_acc_z',
+            'heater_1_status',
+            'heater_2_status',
+            'heater_3_status',
+            'heater_4_status',
+            'heater_5_status',
+            'heater_6_status',
+            'temp_1_status',
+            'temp_2_status',
+            'temp_3_status',
+            'temp_4_status',
+            'temp_5_status',
+            'temp_6_status',
+            'burn_wire_1_status',
+            'burn_wire_2_status',
+            'current_limiting_status',
+            'rpi_1_status',
+            'rpi_2_status',
+            'rpi_3_status',
+            'rpi_4_status',
+            'motor_speed',
+            'recording_mode_flag',
+            'deployment_mode_flag',
+            'auto_mode_flag',
+            'motor_fault'
+        ]])
+        self.telemOut_df.to_csv(CommonData.outputTelemetryDir + '\telemOut.csv', header=True, mode="w")
 
 ############ Methods ############
 
     def run(self):
         try:
             if CommonData.TCPSTATUS == True:
-                self.__request_telemetry()   
+                self.__request_telemetry()
                 self.__update_data_table()
             else:
                 print("Not connected to server")
@@ -100,10 +182,19 @@ class LiveUpdatesTelemetry(threading.Thread):
     def __update_data_table(self) -> None:
         data = self.__formatdata()
         for i in range(CommonData.telemetryParameters):
-            #set contents
+            # set contents
             colourBG, colourFG = update_data_table_colours(i, data, self.dataFormat)
 
             self.tableLabels[i].configure(text=data[i], bg=colourBG, fg=colourFG)
+
+            # save telemetry
+            if CommonData.outputTelemetry == True:
+                self.__save_telemetry(data)
+
+    def __save_telemetry(self, data) -> None:
+        for i in range(CommonData.telemetryParameters):
+            self.telemOut_df.iloc[i] = data[i]
+        self.telemOut_df.to_csv(CommonData.outputTelemetryDir + '\telemOut.csv', header=None, mode="a")
 
 def update_data_table_colours(i, data, dataFormat) -> tuple:
     colourFG = 'black'
