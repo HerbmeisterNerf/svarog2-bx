@@ -12,10 +12,8 @@ class WaitForConnection(threading.Thread):
 
 ############ Initializer ############
 
-    def __init__(self, queue):
+    def __init__(self):
         super().__init__()
-        #Define selfs here
-        self.queue = queue
 
 ############ Methods ############
 

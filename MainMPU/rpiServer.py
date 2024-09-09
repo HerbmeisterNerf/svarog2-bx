@@ -12,6 +12,7 @@ from SendImage import SendImage
 from SendTelem import SendTelem
 from DoAction import DoAction
 from ProbeTCP import ProbeTCP
+from Sleeper import Sleeper
 
 # Class definition
 class TCPServerApp:
@@ -91,6 +92,9 @@ class TCPServerApp:
         self.queue.put_nowait(self.sendImage)
         self.queue.put_nowait(self.sendTelem)
 
+        # sleeper queue
+        self.sleeperqueue = queue.Queue()
+
         self.queue_handler()
 
     def queue_handler(self):
@@ -99,6 +103,7 @@ class TCPServerApp:
         '''
         try:
             self.queue.get_nowait()()
+            print("oi from inside the main worker thread")
         except queue.Empty:
             pass
         self.queue_handler()
@@ -106,14 +111,16 @@ class TCPServerApp:
     def waitForConnection(self):
         if not CommonData.commandSocketStatus:
             CommonData.commandAdd = ''
-            WaitForConnection(self.queue).start()
+            WaitForConnection().start()
         time.sleep(1)
         self.queue.put_nowait(self.waitForConnection)
 
     def probeTCP(self):
         if CommonData.commandSocketStatus:
             ProbeTCP(self.queue, self.awkSocket, self.awkSocketPort).start()
-            time.sleep(2)
+            time.sleep(1)
+            #self.sleeperqueue.put_nowait(self.sleeper(1))
+            #self.sleeperqueue.get_nowait()
         self.queue.put_nowait(self.probeTCP)
 
     def processCommands(self):
@@ -138,6 +145,9 @@ class TCPServerApp:
             UDP_client_info = (CommonData.commandAdd,self.telemetrySocketPort)
             SendTelem(self.telemetrySocket,UDP_client_info).start()
         self.queue.put_nowait(self.sendTelem)
+
+    def sleeper(self, timer):
+        Sleeper(timer)
 
 # Mainloop
 
