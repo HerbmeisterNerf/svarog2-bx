@@ -104,7 +104,7 @@ class LiveUpdatesTelemetry(threading.Thread):
             'auto_mode_flag',
             'motor_fault'
         ]])
-        self.telemOut_df.to_csv(CommonData.outputTelemetryDir + '\telemOut.csv', header=True, mode="w")
+        self.telemOut_df.to_csv(CommonData.outputTelemetryDir + 'telemOut.csv', header=True, mode="w")
 
 ############ Methods ############
 
@@ -194,7 +194,7 @@ class LiveUpdatesTelemetry(threading.Thread):
     def __save_telemetry(self, data) -> None:
         for i in range(CommonData.telemetryParameters):
             self.telemOut_df.iloc[i] = data[i]
-        self.telemOut_df.to_csv(CommonData.outputTelemetryDir + '\telemOut.csv', header=None, mode="a")
+        self.telemOut_df.to_csv(CommonData.outputTelemetryDir + 'telemOut.csv', header=None, mode="a")
 
 def update_data_table_colours(i, data, dataFormat) -> tuple:
     colourFG = 'black'

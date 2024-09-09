@@ -10,6 +10,7 @@ from LiveUpdatesTelemetry import LiveUpdatesTelemetry
 from LiveUpdatesCamera import LiveUpdatesCamera
 from CommonData import CommonData
 from PortCommunication import PortCommunication
+from RespondTCP import RespondTCP
 
 ############ class ############
 class TCPClientApp:
@@ -270,8 +271,21 @@ class TCPClientApp:
         '''
 
         self.queue = queue.Queue()
+        self.queue.put_nowait(self.respondTCP())
         self.queue.put_nowait(self.processTelemetry())
         self.queue.put_nowait(self.processCamera())
+    
+    def respondTCP(self):
+        try:
+            print(CommonData.TCPSTATUS)
+            if CommonData.TCPSTATUS:
+                RespondTCP(self.queue).start()
+            self.queue.put_nowait(self.respondTCP)
+            print(self.queue)
+        except queue.Empty:
+            self.queue.put_nowait(self.respondTCP)
+
+
 
     def processTelemetry(self):
         try:

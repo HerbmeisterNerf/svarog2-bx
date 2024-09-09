@@ -25,7 +25,7 @@ class CommonData:
 
     server_TCP_port: int = 12000
 
-    server_name: str = "155.198.40.229"
+    server_name: str = "192.168.1.81"
 
     # Flags
 
@@ -41,4 +41,4 @@ class CommonData:
 
     # Directories
 
-    outputTelemetryDir: str = "telemetry_output"
+    outputTelemetryDir: str = "telemetry_output/"
