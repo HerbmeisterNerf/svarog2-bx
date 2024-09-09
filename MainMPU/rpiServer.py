@@ -64,21 +64,6 @@ class TCPServerApp:
         Starts the live updates for telemetry and camera by means of a thread queue
         '''
 
-        # self.waitqueue = queue.Queue()
-        # self.probequeue = queue.Queue()
-        # self.actionsqueue = queue.Queue()
-        # self.dataqueue = queue.Queue()
-
-        # self.waitqueue.put_nowait(self.waitForConnection())
-
-        # self.probequeue.put_nowait(self.probeTCP())
-
-        # self.actionsqueue.put_nowait(self.processCommands())
-        # self.actionsqueue.put_nowait(self.doAction())
-
-        # self.dataqueue.put_nowait(self.sendImage())
-        # self.dataqueue.put_nowait(self.sendTelem())
-        
         # action queue
         self.actionqueue = queue.Queue()
 
@@ -111,22 +96,22 @@ class TCPServerApp:
             CommonData.commandAdd = ''
             WaitForConnection().start()
             if CommonData.commandSocketStatus:
-                self.queue.put_nowait(self.probeTCP)
+                self.queue.put(self.probeTCP)
                 self.queue.put(self.processCommands)
                 self.queue.put(self.doAction)
                 self.queue.put(self.sendImage)
                 self.queue.put(self.sendTelem)
             time.sleep(1)
-            self.queue.put_nowait(self.waitForConnection)
+            self.queue.put(self.waitForConnection)
 
     def probeTCP(self):
         if CommonData.commandSocketStatus:
             print("probe TCP")
             ProbeTCP(self.queue, self.awkSocket, self.awkSocketPort).start()
             if not CommonData.commandSocketStatus:
-                self.queue.put_nowait(self.waitForConnection)
+                self.queue.put(self.waitForConnection)
             time.sleep(1)
-            self.queue.put_nowait(self.probeTCP)
+            self.queue.put(self.probeTCP)
 
     def processCommands(self):
         if CommonData.commandSocketStatus:
