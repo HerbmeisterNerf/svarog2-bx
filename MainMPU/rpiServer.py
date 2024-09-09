@@ -66,79 +66,83 @@ class TCPServerApp:
         Starts the live updates for telemetry and camera by means of a thread queue
         '''
 
-        self.waitqueue = queue.Queue()
-        self.probequeue = queue.Queue()
-        self.actionsqueue = queue.Queue()
-        self.dataqueue = queue.Queue()
+        # self.waitqueue = queue.Queue()
+        # self.probequeue = queue.Queue()
+        # self.actionsqueue = queue.Queue()
+        # self.dataqueue = queue.Queue()
 
-        self.waitqueue.put_nowait(self.waitForConnection())
+        # self.waitqueue.put_nowait(self.waitForConnection())
 
-        self.probequeue.put_nowait(self.probeTCP())
+        # self.probequeue.put_nowait(self.probeTCP())
 
-        self.actionsqueue.put_nowait(self.processCommands())
-        self.actionsqueue.put_nowait(self.doAction())
+        # self.actionsqueue.put_nowait(self.processCommands())
+        # self.actionsqueue.put_nowait(self.doAction())
 
-        self.dataqueue.put_nowait(self.sendImage())
-        self.dataqueue.put_nowait(self.sendTelem())
+        # self.dataqueue.put_nowait(self.sendImage())
+        # self.dataqueue.put_nowait(self.sendTelem())
+        
+        self.queue = queue.Queue()
+
+        self.queue.put_nowait(self.waitForConnection)
+        self.queue.put_nowait(self.probeTCP)
+        self.queue.put_nowait(self.processCommands)
+        self.queue.put_nowait(self.doAction)
+        self.queue.put_nowait(self.sendImage)
+        self.queue.put_nowait(self.sendTelem)
+
+        self.queue_handler()
+
+    def queue_handler(self):
+        '''
+        Handles the queue of threads
+        '''
+        try:
+            self.queue.get_nowait()()
+        except queue.Empty:
+            pass
+        time.sleep(0.05)
+        self.queue_handler()
 
     def waitForConnection(self):
-        try:
-            if not self.commandSocketStatus:
-                self.commandAdd = ''
-                WaitForConnection(self.waitqueue,self.commandSocket).start()
-                self.commandSocket,self.commandSocketStatus,self.commandAdd = self.waitqueue.get()
-            time.sleep(1)
-            self.waitqueue.put_nowait(self.waitForConnection)
-        except self.waitqueue.Empty:
-            self.waitqueue.put_nowait(self.waitForConnection)
+        if not self.commandSocketStatus:
+            self.commandAdd = ''
+            WaitForConnection(self.queue,self.commandSocket).start()
+            self.commandSocket,self.commandSocketStatus,self.commandAdd = self.queue.get()
+        time.sleep(1)
+        self.queue.put_nowait(self.waitForConnection)
 
     def probeTCP(self):
-        try:
-            print("oi")
-            if self.commandSocketStatus:
-                ProbeTCP(self.probequeue, self.awkSocket, self.commandAdd, self.awkSocketPort).start()
-                self.commandSocketStatus = self.probequeue.get()
-                print("socket status ", self.commandSocketStatus)
-                time.sleep(2)
-            self.probequeue.put_nowait(self.probeTCP)
-        except self.probequeue.Empty:
-            self.probequeue.put_nowait(self.probeTCP)
+        print("oi")
+        if self.commandSocketStatus:
+            ProbeTCP(self.queue, self.awkSocket, self.commandAdd, self.awkSocketPort).start()
+            self.commandSocketStatus = self.queue.get()
+            print("socket status ", self.commandSocketStatus)
+            time.sleep(2)
+        self.queue.put_nowait(self.probeTCP)
 
     def processCommands(self):
-        try:
-            if self.commandSocketStatus:
-                ProcessCommands(self.actionsqueue,self.commandSocket, self.acList).start()
-                self.acList= self.actionsqueue.get()
-                self.nextaction = self.acList
-            self.actionsqueue.put_nowait(self.processCommands)
-        except self.actionsqueue.Empty:
-            self.actionsqueue.put_nowait(self.processCommands)
+        if self.commandSocketStatus:
+            ProcessCommands(self.queue,self.commandSocket, self.acList).start()
+            self.acList= self.queue.get()
+            self.nextaction = self.acList
+        self.queue.put_nowait(self.processCommands)
 
     def doAction(self):
-        try:
-            if self.commandSocketStatus and self.nextaction != "telemetry" and self.nextaction != "image" and self.nextaction != "NONE":
-                DoAction(self.nextaction).start()
-            self.actionsqueue.put_nowait(self.doAction)
-        except self.actionsqueue.Empty:
-            self.actionsqueue.put_nowait(self.doAction)
+        if self.commandSocketStatus and self.nextaction != "telemetry" and self.nextaction != "image" and self.nextaction != "NONE":
+            DoAction(self.nextaction).start()
+        self.queue.put_nowait(self.doAction)
 
     def sendImage(self):
-        try:
-            if self.commandSocketStatus and self.nextaction == "image":
-                UDP_client_info = (self.commandAdd,self.imageSocketPort)
-                SendImage(self.imageSocket,self.imgbuffer,UDP_client_info,self.imgbaudrate).start()
-            self.dataqueue.put_nowait(self.sendImage)
-        except self.dataqueue.Empty:
-            self.dataqueue.put_nowait(self.sendImage)
+        if self.commandSocketStatus and self.nextaction == "image":
+            UDP_client_info = (self.commandAdd,self.imageSocketPort)
+            SendImage(self.imageSocket,self.imgbuffer,UDP_client_info,self.imgbaudrate).start()
+        self.queue.put_nowait(self.sendImage)
 
     def sendTelem(self):
-        try:
-            if self.commandSocketStatus and self.nextaction == "telemetry":
-                UDP_client_info = (self.commandAdd,self.telemetrySocketPort)
-                SendTelem(self.telemetrySocket,UDP_client_info).start()
-            self.dataqueue.put_nowait(self.sendTelem)
-        except self.dataqueue.Empty:
-            self.dataqueue.put_nowait(self.sendTelem)
+        if self.commandSocketStatus and self.nextaction == "telemetry":
+            UDP_client_info = (self.commandAdd,self.telemetrySocketPort)
+            SendTelem(self.telemetrySocket,UDP_client_info).start()
+        self.queue.put_nowait(self.sendTelem)
 
 # Mainloop
 
