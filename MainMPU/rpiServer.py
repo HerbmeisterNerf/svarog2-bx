@@ -113,7 +113,6 @@ class TCPServerApp:
     def probeTCP(self):
         if CommonData.commandSocketStatus:
             ProbeTCP(self.queue, self.awkSocket, self.awkSocketPort).start()
-            print("socket status ", CommonData.commandSocketStatus)
             time.sleep(2)
         self.queue.put_nowait(self.probeTCP)
 
