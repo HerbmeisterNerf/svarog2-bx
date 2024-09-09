@@ -23,6 +23,7 @@ class ProcessCommands(threading.Thread):
 
     def run(self):
         try:
+            print("inside process commands")
             cmsg = self.socket.recv(12)
             cmsg = cmsg.decode()
             result = re.search('start:(.*)end:', cmsg)
@@ -35,7 +36,7 @@ class ProcessCommands(threading.Thread):
             else:
                 self.queue.put((cmsg))
         except Exception as e:
-            print(f'An exception occurred: {e}')
+            print(f'An exception occurred in ProcessCommands: {e}')
             self.queue.put("NONE")
 
 ############ Main ############

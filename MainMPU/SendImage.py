@@ -49,7 +49,7 @@ class SendImage(threading.Thread):
             print("Image sent.")
 
         except Exception as e:
-            print(f'An exception occurred: {e}')
+            print(f'An exception occurred in SendImage: {e}')
 
 ############ Main ############
 

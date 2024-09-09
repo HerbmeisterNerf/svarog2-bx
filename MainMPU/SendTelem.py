@@ -34,7 +34,7 @@ class SendTelem(threading.Thread):
             self.socket.sendto(lol.encode('utf-8'), self.UDP_info)
             print("Telemetry sent")
         except Exception as e:
-            print(f'An exception occurred: {e}')
+            print(f'An exception occurred in SendTelem: {e}')
     
     def updateTelem(self,packet):
         packet = self.updatePDU(packet)

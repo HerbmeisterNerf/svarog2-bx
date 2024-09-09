@@ -26,7 +26,7 @@ class WaitForConnection(threading.Thread):
             CommonData.commandSocketStatus = True
             CommonData.commandAdd = TCPadd[0]
         except Exception as e:
-            print(f'An exception occurred: {e}')
+            print(f'An exception occurred in WaitForConnection: {e}')
 
 ############ Main ############
 

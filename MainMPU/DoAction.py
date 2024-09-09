@@ -26,7 +26,7 @@ class DoAction(threading.Thread):
             command = 'sudo python toggle' + self.pin + '.py'
             os.system(command)
         except Exception as e:
-            print(f'An exception occurred: {e}')
+            print(f'An exception occurred in DoAction: {e}')
 
 ############ Main ############
 

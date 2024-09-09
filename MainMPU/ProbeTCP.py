@@ -34,7 +34,7 @@ class ProbeTCP(threading.Thread):
             else:
                 CommonData.commandSocketStatus = False
         except Exception as e:
-            print(f'An exception occurred: {e}')
+            print(f'An exception occurred in ProbeTCP: {e}')
 
 ############ Main ############
 
