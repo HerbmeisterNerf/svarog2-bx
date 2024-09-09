@@ -80,15 +80,13 @@ class TCPServerApp:
         self.queue.put_nowait(self.sendImage())
         self.queue.put_nowait(self.sendTelem())
         self.queue.put_nowait(self.doAction())
-        
-
 
     def waitForConnection(self):
         try:
             if not self.commandSocketStatus:
                 print(self.commandSocketStatus)
                 self.commandAdd = ''
-                #Here start thread of waiting, requires, queue and thats all I believe all
+                # Here start thread of waiting, requires, queue and thats all I believe all
                 WaitForConnection(self.dataqueue,self.commandSocket).start()
                 self.commandSocket,self.commandSocketStatus,self.commandAdd = self.dataqueue.get()
                 print(self.commandSocketStatus)
@@ -125,6 +123,7 @@ class TCPServerApp:
             self.queue.put_nowait(self.sendTelem)
         except queue.Empty:
             self.queue.put_nowait(self.sendTelem)
+
     def doAction(self):
         try:
             if self.commandSocketStatus and self.nextaction != "telemetry" and self.nextaction != "image" and self.nextaction != "NONE":
@@ -134,7 +133,6 @@ class TCPServerApp:
             self.queue.put_nowait(self.doAction)
     
     def probeTCP(self):
-        print("The function is running dumbass")
         print(self.commandSocketStatus)
         try:
             if self.commandSocketStatus:
@@ -142,22 +140,20 @@ class TCPServerApp:
                 ProbeTCP(self.dataqueue,self.awkSocket,self.commandAdd,self.awkSocketPort).start()
                 self.commandSocketStatus = self.dataqueue.get()
                 print(self.commandSocketStatus)
-            self.queue.put_nowait(self.probeTCP)
             time.sleep(1)
+            self.queue.put_nowait(self.probeTCP)
         except queue.Empty:
-            self.queue.put_nowait(self.probeTCP)
             time.sleep(1)
-    
-    #Mainloop
+            self.queue.put_nowait(self.probeTCP)
 
+# Mainloop
 
+if  __name__ == '__main__':
+    a = TCPServerApp()
+    TCPServerApp.startLiveProcesses(a)
 
-
-a = TCPServerApp()
-TCPServerApp.startLiveProcesses(a)
-
-while True:
-    try:
-        TCPServerApp.startLiveProcesses(a)
-    except KeyboardInterrupt:
-        sys.exit(0)
+    while True:
+        try:
+            TCPServerApp.startLiveProcesses(a)
+        except KeyboardInterrupt:
+            sys.exit(0)

@@ -23,13 +23,12 @@ class ProbeTCP(threading.Thread):
         #Define selfs here
         self.queue = queue
         self.socket = socket
-        self.info = (address,port)
+        self.info = (address, port)
 
 ############ Methods ############
 
     def run(self):
         try:
-            print("inside function mate")
             print(self.info)
             msg = "ACK"
             self.socket.sendto(msg.encode(),self.info)
