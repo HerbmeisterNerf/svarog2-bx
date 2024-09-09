@@ -32,7 +32,7 @@ class ProcessCommands(threading.Thread):
             else:
                 CommonData.actuate = 1
             cmsg = "el diablo"
-            print(CommonData.acList)
+            print(CommonData.telemetry, CommonData.image, CommonData.actuate)
             print("Whatsup")
         except Exception as e:
             print(f'An exception occurred: {e}')
