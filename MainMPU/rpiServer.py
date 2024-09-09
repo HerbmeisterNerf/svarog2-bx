@@ -66,12 +66,14 @@ class TCPServerApp:
         Starts the live updates for telemetry and camera by means of a thread queue
         '''
 
-        self.queue = queue.Queue()
+        self.waitqueue = queue.Queue()
+        self.probequeue = queue.Queue()
         self.actionsqueue = queue.Queue()
         self.dataqueue = queue.Queue()
 
-        self.queue.put_nowait(self.waitForConnection())
-        self.queue.put_nowait(self.probeTCP())
+        self.waitqueue.put_nowait(self.waitForConnection())
+
+        self.probequeue.put_nowait(self.probeTCP())
 
         self.actionsqueue.put_nowait(self.processCommands())
         self.actionsqueue.put_nowait(self.doAction())
@@ -83,26 +85,24 @@ class TCPServerApp:
         try:
             if not self.commandSocketStatus:
                 self.commandAdd = ''
-                WaitForConnection(self.queue,self.commandSocket).start()
-                self.commandSocket,self.commandSocketStatus,self.commandAdd = self.queue.get()
+                WaitForConnection(self.waitqueue,self.commandSocket).start()
+                self.commandSocket,self.commandSocketStatus,self.commandAdd = self.waitqueue.get()
             time.sleep(1)
-            self.queue.put_nowait(self.waitForConnection)
-        except self.queue.Empty:
-            time.sleep(1)
-            self.queue.put_nowait(self.waitForConnection)
+            self.waitqueue.put_nowait(self.waitForConnection)
+        except self.waitqueue.Empty:
+            self.waitqueue.put_nowait(self.waitForConnection)
 
     def probeTCP(self):
         try:
+            print("oi")
             if self.commandSocketStatus:
-                print("Inside fucking thing")
-                ProbeTCP(self.queue,self.awkSocket,self.commandAdd,self.awkSocketPort).start()
-                self.commandSocketStatus = self.queue.get()
-                print(self.commandSocketStatus)
-            time.sleep(1)
-            self.queue.put_nowait(self.probeTCP)
-        except self.queue.Empty:
-            time.sleep(1)
-            self.queue.put_nowait(self.probeTCP)
+                ProbeTCP(self.probequeue, self.awkSocket, self.commandAdd, self.awkSocketPort).start()
+                self.commandSocketStatus = self.probequeue.get()
+                print("socket status ", self.commandSocketStatus)
+                time.sleep(2)
+            self.probequeue.put_nowait(self.probeTCP)
+        except self.probequeue.Empty:
+            self.probequeue.put_nowait(self.probeTCP)
 
     def processCommands(self):
         try:
