@@ -19,7 +19,6 @@ class TCPServerApp:
     This class contains the backend of the TCP server
     '''
 
-
     #Initialiser
 
     def __init__(self):
@@ -37,18 +36,21 @@ class TCPServerApp:
         self.commandSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.commandSocket.bind(('', self.commandSocketPort))
         print("Command socket defined.")
+
         #Telemetry socket
         self.telemetrySocketPort = 11000
         self.telemetrySocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.telemetrySocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.telemetrySocket.bind(('', self.telemetrySocketPort))
         print("Telemetry socket defined.")
+
         #Image socket
         self.imageSocketPort = 15000
         self.imageSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.imageSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.imageSocket.bind(('', self.imageSocketPort))
         print("Image socket defined.")
+
         #Awk socket
         self.awkSocketPort = 50007
         self.awkSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -56,34 +58,51 @@ class TCPServerApp:
         self.awkSocket.bind(('', self.awkSocketPort))
         print("Awake socket defined.")
 
-    #Methods
+    # Methods
 
-    #Live updates
+    # Live updates
     def startLiveProcesses(self):
         '''
         Starts the live updates for telemetry and camera by means of a thread queue
         '''
 
         self.queue = queue.Queue()
-        self.dataqueue = queue.Queue()
         self.actionsqueue = queue.Queue()
+        self.dataqueue = queue.Queue()
 
-        self.dataqueue.put_nowait(self.waitForConnection())
-        self.dataqueue.put_nowait(self.probeTCP())
-        self.queue.put_nowait(self.processCommands())
-        self.queue.put_nowait(self.sendImage())
-        self.queue.put_nowait(self.sendTelem())
-        self.queue.put_nowait(self.doAction())
+        self.queue.put_nowait(self.waitForConnection())
+        self.queue.put_nowait(self.probeTCP())
+
+        self.actionsqueue.put_nowait(self.processCommands())
+        self.actionsqueue.put_nowait(self.doAction())
+
+        self.dataqueue.put_nowait(self.sendImage())
+        self.dataqueue.put_nowait(self.sendTelem())
 
     def waitForConnection(self):
         try:
             if not self.commandSocketStatus:
                 self.commandAdd = ''
-                WaitForConnection(self.dataqueue,self.commandSocket).start()
-                self.commandSocket,self.commandSocketStatus,self.commandAdd = self.dataqueue.get()
-            self.dataqueue.put_nowait(self.waitForConnection)
-        except queue.Empty:
-            self.dataqueue.put_nowait(self.waitForConnection)
+                WaitForConnection(self.queue,self.commandSocket).start()
+                self.commandSocket,self.commandSocketStatus,self.commandAdd = self.queue.get()
+            time.sleep(1)
+            self.queue.put_nowait(self.waitForConnection)
+        except self.queue.Empty:
+            time.sleep(1)
+            self.queue.put_nowait(self.waitForConnection)
+
+    def probeTCP(self):
+        try:
+            if self.commandSocketStatus:
+                print("Inside fucking thing")
+                ProbeTCP(self.queue,self.awkSocket,self.commandAdd,self.awkSocketPort).start()
+                self.commandSocketStatus = self.queue.get()
+                print(self.commandSocketStatus)
+            time.sleep(1)
+            self.queue.put_nowait(self.probeTCP)
+        except self.queue.Empty:
+            time.sleep(1)
+            self.queue.put_nowait(self.probeTCP)
 
     def processCommands(self):
         try:
@@ -91,48 +110,35 @@ class TCPServerApp:
                 ProcessCommands(self.actionsqueue,self.commandSocket, self.acList).start()
                 self.acList= self.actionsqueue.get()
                 self.nextaction = self.acList
-            self.queue.put_nowait(self.processCommands) # Put
-        except queue.Empty:
-            self.queue.put_nowait(self.processCommands)
+            self.actionsqueue.put_nowait(self.processCommands) # Put
+        except self.actionsqueue.Empty:
+            self.actionsqueue.put_nowait(self.processCommands)
+
+    def doAction(self):
+        try:
+            if self.commandSocketStatus and self.nextaction != "telemetry" and self.nextaction != "image" and self.nextaction != "NONE":
+                DoAction(self.nextaction).start()
+            self.actionsqueue.put_nowait(self.doAction)
+        except self.actionsqueue.Empty:
+            self.actionsqueue.put_nowait(self.doAction)
 
     def sendImage(self):
         try:
             if self.commandSocketStatus and self.nextaction == "image":
                 UDP_client_info = (self.commandAdd,self.imageSocketPort)
                 SendImage(self.imageSocket,self.imgbuffer,UDP_client_info,self.imgbaudrate).start()
-            self.queue.put_nowait(self.sendImage)
-        except queue.Empty:
-            self.queue.put_nowait(self.sendImage)
+            self.dataqueue.put_nowait(self.sendImage)
+        except self.dataqueue.Empty:
+            self.dataqueue.put_nowait(self.sendImage)
 
     def sendTelem(self):
         try:
             if self.commandSocketStatus and self.nextaction == "telemetry":
                 UDP_client_info = (self.commandAdd,self.telemetrySocketPort)
                 SendTelem(self.telemetrySocket,UDP_client_info).start()
-            self.queue.put_nowait(self.sendTelem)
-        except queue.Empty:
-            self.queue.put_nowait(self.sendTelem)
-
-    def doAction(self):
-        try:
-            if self.commandSocketStatus and self.nextaction != "telemetry" and self.nextaction != "image" and self.nextaction != "NONE":
-                DoAction(self.nextaction).start()
-            self.queue.put_nowait(self.doAction)
-        except queue.Empty:
-            self.queue.put_nowait(self.doAction)
-    
-    def probeTCP(self):
-        try:
-            if self.commandSocketStatus:
-                print("Inside fucking thing")
-                ProbeTCP(self.dataqueue,self.awkSocket,self.commandAdd,self.awkSocketPort).start()
-                self.commandSocketStatus = self.dataqueue.get()
-                print(self.commandSocketStatus)
-            time.sleep(1)
-            self.dataqueue.put_nowait(self.probeTCP)
-        except queue.Empty:
-            time.sleep(1)
-            self.dataqueue.put_nowait(self.probeTCP)
+            self.dataqueue.put_nowait(self.sendTelem)
+        except self.dataqueue.Empty:
+            self.dataqueue.put_nowait(self.sendTelem)
 
 # Mainloop
 
