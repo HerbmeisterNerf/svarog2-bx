@@ -2,9 +2,9 @@
 import threading
 
 ############ custom libraries ############
-
 from CommonData import CommonData
 from PortCommunication import PortCommunication
+
 ############ class ############
 class RespondTCP(threading.Thread):
     '''
