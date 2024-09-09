@@ -280,7 +280,7 @@ class TCPClientApp:
             if CommonData.TCPSTATUS:
                 RespondTCP().start()
             self.queue.put_nowait(self.master.after(int(1000), self.respondTCP))
-        except queue.Empty:
+        except self.queue.Empty:
             self.queue.put_nowait(self.master.after(int(1000), self.respondTCP))
 
     def processTelemetry(self):
@@ -291,7 +291,7 @@ class TCPClientApp:
                                     self.dataFormat,
                                     self.tableLabels).start()
             self.queue.put_nowait(self.master.after(int(self.TelemFreqVal.get()*1000), self.processTelemetry))
-        except queue.Empty:
+        except self.queue.Empty:
             self.queue.put_nowait(self.master.after(int(self.TelemFreqVal.get()*1000), self.processTelemetry))
         
     def processCamera(self):
@@ -301,7 +301,7 @@ class TCPClientApp:
                                 self.right_pic_panel,
                                 self.panel,self.timestamp,round(float(4096/self.imgbaudrate.get()*8/1000),3)).start()
             self.queue.put_nowait(self.master.after(int(self.ImgFreqVal.get()*1000), self.processCamera))
-        except queue.Empty:
+        except self.queue.Empty:
             self.queue.put_nowait(self.master.after(int(self.ImgFreqVal.get()*1000), self.processCamera))
 
     ###### toggles ######

@@ -25,7 +25,6 @@ class RespondTCP(threading.Thread):
             msg = awksocket.recvfrom(3)
             print("Received it mate")
             cmd = "ACK"
-            print(msg[0].decode())
             if msg[0].decode() == cmd:
                awksocket.sendto(cmd.encode(), (CommonData.server_name, CommonData.probe_port))
                print("Sent it mate")
