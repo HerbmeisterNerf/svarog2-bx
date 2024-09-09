@@ -110,7 +110,7 @@ class TCPServerApp:
                 ProcessCommands(self.actionsqueue,self.commandSocket, self.acList).start()
                 self.acList= self.actionsqueue.get()
                 self.nextaction = self.acList
-            self.actionsqueue.put_nowait(self.processCommands) # Put
+            self.actionsqueue.put_nowait(self.processCommands)
         except self.actionsqueue.Empty:
             self.actionsqueue.put_nowait(self.processCommands)
 
