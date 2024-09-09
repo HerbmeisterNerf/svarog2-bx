@@ -102,9 +102,16 @@ class TCPServerApp:
         Handles the queue of threads
         '''
         try:
-            self.queue.get_nowait()()
             print("oi from inside the main worker thread")
+            self.queue.get_nowait()()
+            if CommonData.commandSocketStatus:
+                self.queue.put_nowait(self.processCommands)
+                self.queue.put_nowait(self.sendImage)
+                self.queue.put_nowait(self.sendTelem)
+                self.queue.put_nowait(self.doAction)
         except queue.Empty:
+            pass
+        else:
             pass
         self.queue_handler()
 
@@ -117,34 +124,30 @@ class TCPServerApp:
 
     def probeTCP(self):
         if CommonData.commandSocketStatus:
+            print("probe TCP")
             ProbeTCP(self.queue, self.awkSocket, self.awkSocketPort).start()
             time.sleep(1)
-            #self.sleeperqueue.put_nowait(self.sleeper(1))
-            #self.sleeperqueue.get_nowait()
         self.queue.put_nowait(self.probeTCP)
 
     def processCommands(self):
         if CommonData.commandSocketStatus:
-            ProcessCommands(self.queue,CommonData.commandSocket).start()
+            ProcessCommands(self.queue, CommonData.commandSocket).start()
             self.nextaction = self.actionqueue.get()
-        self.queue.put_nowait(self.processCommands)
+            time.sleep(0.01)
 
     def doAction(self):
         if CommonData.commandSocketStatus and self.nextaction != "telemetry" and self.nextaction != "image" and self.nextaction != "NONE":
             DoAction(self.nextaction).start()
-        self.queue.put_nowait(self.doAction)
 
     def sendImage(self):
         if CommonData.commandSocketStatus and self.nextaction == "image":
             UDP_client_info = (CommonData.commandAdd,self.imageSocketPort)
             SendImage(self.imageSocket,self.imgbuffer,UDP_client_info,self.imgbaudrate).start()
-        self.queue.put_nowait(self.sendImage)
 
     def sendTelem(self):
         if CommonData.commandSocketStatus and self.nextaction == "telemetry":
             UDP_client_info = (CommonData.commandAdd,self.telemetrySocketPort)
             SendTelem(self.telemetrySocket,UDP_client_info).start()
-        self.queue.put_nowait(self.sendTelem)
 
     def sleeper(self, timer):
         Sleeper(timer)
