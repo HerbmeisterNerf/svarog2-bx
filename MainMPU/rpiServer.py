@@ -97,7 +97,6 @@ class TCPServerApp:
             self.queue.get_nowait()()
         except queue.Empty:
             pass
-        time.sleep(0.05)
         self.queue_handler()
 
     def waitForConnection(self):
