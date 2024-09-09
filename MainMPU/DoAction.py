@@ -10,9 +10,7 @@ import os
 ############ class ############
 class DoAction(threading.Thread):
     '''
-    This class is responsible for requesting a new telemtry package and updating it in the GUI
     '''
-
 
 ############ Initializer ############
 

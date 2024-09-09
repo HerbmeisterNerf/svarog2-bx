@@ -14,7 +14,6 @@ class SendImage(threading.Thread):
     This class is responsible for requesting a new telemtry package and updating it in the GUI
     '''
 
-
 ############ Initializer ############
 
     def __init__(self,socket,buffer,UDP_info,rate):

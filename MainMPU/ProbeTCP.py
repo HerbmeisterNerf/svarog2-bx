@@ -2,7 +2,7 @@
 import threading
 
 ############ custom libraries ############
-
+from CommonData import CommonData
 
 ############ class ############
 class ProbeTCP(threading.Thread):
@@ -13,12 +13,12 @@ class ProbeTCP(threading.Thread):
 
 ############ Initializer ############
 
-    def __init__(self, queue,socket,address,port):
+    def __init__(self, queue,socket,port):
         super().__init__()
         #Define selfs here
         self.queue = queue
         self.socket = socket
-        self.info = (address, port)
+        self.info = (CommonData.commandAdd, port)
 
 ############ Methods ############
 
@@ -30,10 +30,9 @@ class ProbeTCP(threading.Thread):
             ack = self.socket.recv(3)
             print("Received it mate")
             if ack.decode() == "ACK":
-                status = True
+                CommonData.commandSocketStatus = True
             else:
-                status = False
-            self.queue.put((status))
+                CommonData.commandSocketStatus = False
         except Exception as e:
             print(f'An exception occurred: {e}')
 

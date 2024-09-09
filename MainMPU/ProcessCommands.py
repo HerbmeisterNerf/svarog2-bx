@@ -2,7 +2,7 @@
 import threading
 
 ############ custom libraries ############
-
+from CommonData import CommonData
 
 ############ class ############
 class ProcessCommands(threading.Thread):
@@ -10,15 +10,13 @@ class ProcessCommands(threading.Thread):
     This class is responsible for requesting a new telemtry package and updating it in the GUI
     '''
 
-
 ############ Initializer ############
 
-    def __init__(self, queue, socket, acList):
+    def __init__(self, queue, socket):
         super().__init__()
         #Define selfs here
         self.queue = queue
         self.socket = socket
-        self.list = acList
 
 ############ Methods ############
 
@@ -28,15 +26,14 @@ class ProcessCommands(threading.Thread):
             cmsg = cmsg.decode()
             print(cmsg)
             if cmsg == "telemetry":
-                self.list[0] = 1
+                CommonData.telemetry = 1
             elif cmsg == "image":
-                self.list[1] = 1
+                CommonData.image = 1
             else:
-                self.list[2] = 1
+                CommonData.actuate = 1
             cmsg = "el diablo"
-            print(self.list)
+            print(CommonData.acList)
             print("Whatsup")
-            self.queue.put((self.list))
         except Exception as e:
             print(f'An exception occurred: {e}')
 
