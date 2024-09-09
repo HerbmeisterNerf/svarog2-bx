@@ -1,15 +1,8 @@
 # Default libraries
 import queue
 import socket
-from PIL import Image
-import os
-import tkinter as tk
-import io
-import time
-from messagePack import MessagePack
 import time
 import sys
-from datetime import datetime
 
 #Custom libraries
 
@@ -74,8 +67,9 @@ class TCPServerApp:
         self.queue = queue.Queue()
         self.dataqueue = queue.Queue()
         self.actionsqueue = queue.Queue()
-        self.queue.put_nowait(self.waitForConnection())
-        self.queue.put_nowait(self.probeTCP())
+
+        self.dataqueue.put_nowait(self.waitForConnection())
+        self.dataqueue.put_nowait(self.probeTCP())
         self.queue.put_nowait(self.processCommands())
         self.queue.put_nowait(self.sendImage())
         self.queue.put_nowait(self.sendTelem())
@@ -84,22 +78,17 @@ class TCPServerApp:
     def waitForConnection(self):
         try:
             if not self.commandSocketStatus:
-                print(self.commandSocketStatus)
                 self.commandAdd = ''
-                # Here start thread of waiting, requires, queue and thats all I believe all
                 WaitForConnection(self.dataqueue,self.commandSocket).start()
                 self.commandSocket,self.commandSocketStatus,self.commandAdd = self.dataqueue.get()
-                print(self.commandSocketStatus)
-            time.sleep(1)
-            self.queue.put_nowait(self.waitForConnection) # Put
+            self.dataqueue.put_nowait(self.waitForConnection)
         except queue.Empty:
-            time.sleep(1)
-            self.queue.put_nowait(self.waitForConnection)
+            self.dataqueue.put_nowait(self.waitForConnection)
 
     def processCommands(self):
         try:
             if self.commandSocketStatus:
-                ProcessCommands(self.actionsqueue,self.commandSocket).start()
+                ProcessCommands(self.actionsqueue,self.commandSocket, self.acList).start()
                 self.acList= self.actionsqueue.get()
                 self.nextaction = self.acList
             self.queue.put_nowait(self.processCommands) # Put
@@ -133,7 +122,6 @@ class TCPServerApp:
             self.queue.put_nowait(self.doAction)
     
     def probeTCP(self):
-        print(self.commandSocketStatus)
         try:
             if self.commandSocketStatus:
                 print("Inside fucking thing")
@@ -141,10 +129,10 @@ class TCPServerApp:
                 self.commandSocketStatus = self.dataqueue.get()
                 print(self.commandSocketStatus)
             time.sleep(1)
-            self.queue.put_nowait(self.probeTCP)
+            self.dataqueue.put_nowait(self.probeTCP)
         except queue.Empty:
             time.sleep(1)
-            self.queue.put_nowait(self.probeTCP)
+            self.dataqueue.put_nowait(self.probeTCP)
 
 # Mainloop
 

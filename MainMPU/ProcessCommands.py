@@ -1,8 +1,5 @@
 ############ standard libraries ############
 import threading
-import socket
-import tkinter as tk
-import time
 
 ############ custom libraries ############
 
@@ -16,7 +13,7 @@ class ProcessCommands(threading.Thread):
 
 ############ Initializer ############
 
-    def __init__(self, queue,socket,acList):
+    def __init__(self, queue, socket, acList):
         super().__init__()
         #Define selfs here
         self.queue = queue

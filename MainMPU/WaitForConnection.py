@@ -1,8 +1,5 @@
 ############ standard libraries ############
 import threading
-import socket
-import tkinter as tk
-import time
 
 ############ custom libraries ############
 

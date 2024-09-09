@@ -1,12 +1,7 @@
 ############ standard libraries ############
 import threading
-import socket
-import tkinter as tk
-import time
-import re
 
 ############ custom libraries ############
-
 
 
 ############ class ############
@@ -29,15 +24,13 @@ class ProbeTCP(threading.Thread):
 
     def run(self):
         try:
-            print(self.info)
             msg = "ACK"
-            self.socket.sendto(msg.encode(),self.info)
+            self.socket.sendto(msg.encode(), self.info)
             print("Sent it mate")
-            ack = self.socket.recv(10)
-            print(ack.decode())
+            ack = self.socket.recv(3)
+            print("Received it mate")
             if ack.decode() == "ACK":
-                print("Got ACK")
-                status =True
+                status = True
             else:
                 status = False
             self.queue.put((status))
