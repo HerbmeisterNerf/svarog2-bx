@@ -1,5 +1,6 @@
 ############ standard libraries ############
 import threading
+import re
 
 ############ custom libraries ############
 from CommonData import CommonData
@@ -22,20 +23,20 @@ class ProcessCommands(threading.Thread):
 
     def run(self):
         try:
-            cmsg = self.socket.recv(9)
+            cmsg = self.socket.recv(12)
             cmsg = cmsg.decode()
+            result = re.search('start:(.*)end:', cmsg)
+            cmsg = result.group(1)
             print(cmsg)
-            if cmsg == "telemetry":
-                CommonData.telemetry = 1
-            elif cmsg == "image":
-                CommonData.image = 1
+            if cmsg == 'TE':
+                self.queue.put(("telemetry"))  
+            elif cmsg == 'IM':
+                self.queue.put(("image")) 
             else:
-                CommonData.actuate = 1
-            cmsg = "el diablo"
-            print(CommonData.telemetry, CommonData.image, CommonData.actuate)
-            print("Whatsup")
+                self.queue.put((cmsg))
         except Exception as e:
             print(f'An exception occurred: {e}')
+            self.queue.put("NONE")
 
 ############ Main ############
 

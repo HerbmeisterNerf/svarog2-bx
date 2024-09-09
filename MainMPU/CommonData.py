@@ -14,9 +14,3 @@ class CommonData:
     commandSocketStatus: bool = False
 
     commandAdd: str = ""
-
-    telemetry: int = 0
-
-    image: int = 0
-
-    actuate: int = 0

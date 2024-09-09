@@ -78,6 +78,10 @@ class TCPServerApp:
         # self.dataqueue.put_nowait(self.sendImage())
         # self.dataqueue.put_nowait(self.sendTelem())
         
+        # action queue
+        self.actionqueue = queue.Queue()
+
+        # process and compute queues
         self.queue = queue.Queue()
 
         self.queue.put_nowait(self.waitForConnection)
@@ -116,7 +120,7 @@ class TCPServerApp:
     def processCommands(self):
         if CommonData.commandSocketStatus:
             ProcessCommands(self.queue,CommonData.commandSocket).start()
-            self.nextaction = [CommonData.telemetry, CommonData.image, CommonData.actuate]
+            self.nextaction = self.actionqueue.get()
         self.queue.put_nowait(self.processCommands)
 
     def doAction(self):
