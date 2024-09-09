@@ -277,15 +277,11 @@ class TCPClientApp:
     
     def respondTCP(self):
         try:
-            print(CommonData.TCPSTATUS)
             if CommonData.TCPSTATUS:
-                RespondTCP(self.queue).start()
-            self.queue.put_nowait(self.respondTCP)
-            print(self.queue)
+                RespondTCP().start()
+            self.queue.put_nowait(self.master.after(int(1000), self.respondTCP))
         except queue.Empty:
-            self.queue.put_nowait(self.respondTCP)
-
-
+            self.queue.put_nowait(self.master.after(int(1000), self.respondTCP))
 
     def processTelemetry(self):
         try:

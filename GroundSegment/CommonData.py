@@ -21,6 +21,8 @@ class CommonData:
 
     telemetry_port_UDP: int = 11000
 
+    probe_port: int = 50007
+
     # TCP ports and server name
 
     server_TCP_port: int = 12000

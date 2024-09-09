@@ -1,9 +1,5 @@
 ############ standard libraries ############
 import threading
-import socket
-import tkinter as tk
-import time
-import re
 
 ############ custom libraries ############
 
@@ -14,7 +10,6 @@ class RespondTCP(threading.Thread):
     '''
     This class is responsible for requesting a new telemtry package and updating it in the GUI
     '''
-
 
 ############ Initializer ############
 
@@ -27,18 +22,16 @@ class RespondTCP(threading.Thread):
     def run(self):
         try:
             awksocket = PortCommunication.open_UDP(CommonData.probe_port)
-            print("Socket created", awksocket)
             msg = awksocket.recvfrom(3)
-            msg = msg.decode()
-            if msg == "ACK":
-               print("Got the ACK")
-               cmd = "ACK"
-               awksocket.sendto(cmd.encode(),(CommonData.server_name, CommonData.probe_port))
+            print("Received it mate")
+            cmd = "ACK"
+            print(msg[0].decode())
+            if msg[0].decode() == cmd:
+               awksocket.sendto(cmd.encode(), (CommonData.server_name, CommonData.probe_port))
                print("Sent it mate")
             PortCommunication.close_UDP(awksocket)
         except Exception as e:
             print(f'An exception occurred: {e}')
-
 
 ############ Main ############
 
