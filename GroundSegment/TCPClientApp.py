@@ -285,7 +285,7 @@ class TCPClientApp:
             self.queue.get_nowait()()
         except queue.Empty:
             pass
-        self.master.after(50, self.queue_handler)
+        self.queue_handler()
 
     def respondTCP(self):
         if CommonData.TCPSTATUS:
