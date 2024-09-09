@@ -101,14 +101,15 @@ class TCPServerApp:
         '''
         Handles the queue of threads
         '''
-        try:
-            print("oi from inside the main worker thread")
-            self.queue.get_nowait()()
-        except queue.Empty:
-            pass
-        else:
-            pass
-        self.queue_handler()
+        while True:
+            try:
+                self.queue.get_nowait()()
+            except queue.Empty:
+                pass
+            else:
+                pass
+            if not CommonData.commandSocketStatus:
+                time.sleep(0.5)
 
     def waitForConnection(self):
         if not CommonData.commandSocketStatus:
