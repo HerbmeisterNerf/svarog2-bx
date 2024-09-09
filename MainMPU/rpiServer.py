@@ -86,11 +86,6 @@ class TCPServerApp:
         self.queue = queue.Queue()
 
         self.queue.put_nowait(self.waitForConnection)
-        self.queue.put_nowait(self.probeTCP)
-        self.queue.put_nowait(self.processCommands)
-        self.queue.put_nowait(self.doAction)
-        self.queue.put_nowait(self.sendImage)
-        self.queue.put_nowait(self.sendTelem)
 
         # sleeper queue
         self.sleeperqueue = queue.Queue()
@@ -115,6 +110,12 @@ class TCPServerApp:
         if not CommonData.commandSocketStatus:
             CommonData.commandAdd = ''
             WaitForConnection().start()
+            if CommonData.commandSocketStatus:
+                self.queue.put_nowait(self.probeTCP)
+                self.queue.put_nowait(self.processCommands)
+                self.queue.put_nowait(self.doAction)
+                self.queue.put_nowait(self.sendImage)
+                self.queue.put_nowait(self.sendTelem)
             time.sleep(1)
             self.queue.put_nowait(self.waitForConnection)
 
@@ -122,6 +123,8 @@ class TCPServerApp:
         if CommonData.commandSocketStatus:
             print("probe TCP")
             ProbeTCP(self.queue, self.awkSocket, self.awkSocketPort).start()
+            if not CommonData.commandSocketStatus:
+                self.queue.put_nowait(self.waitForConnection)
             time.sleep(1)
             self.queue.put_nowait(self.probeTCP)
 
