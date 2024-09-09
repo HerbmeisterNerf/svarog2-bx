@@ -3,6 +3,7 @@ import tkinter as tk
 from PIL import Image, ImageTk
 import pandas as pd
 import queue
+import time
 
 ############ custom libraries ############
 from MessagePack import MessagePack
@@ -271,38 +272,40 @@ class TCPClientApp:
         '''
 
         self.queue = queue.Queue()
-        self.queue.put_nowait(self.respondTCP())
-        self.queue.put_nowait(self.processTelemetry())
-        self.queue.put_nowait(self.processCamera())
-    
-    def respondTCP(self):
+        self.queue.put_nowait(self.respondTCP)
+        self.queue.put_nowait(self.processTelemetry)
+        self.queue.put_nowait(self.processCamera)
+        self.master.after(100, self.queue_handler)
+
+    def queue_handler(self):
+        '''
+        Handles the queue of threads
+        '''
         try:
-            if CommonData.TCPSTATUS:
-                RespondTCP().start()
-            self.queue.put_nowait(self.master.after(int(1000), self.respondTCP))
-        except self.queue.Empty:
-            self.queue.put_nowait(self.master.after(int(1000), self.respondTCP))
+            self.queue.get_nowait()()
+        except queue.Empty:
+            pass
+        self.master.after(50, self.queue_handler)
+
+    def respondTCP(self):
+        if CommonData.TCPSTATUS:
+            RespondTCP().start()
+        self.queue.put_nowait(self.master.after(int(1000), self.respondTCP))
 
     def processTelemetry(self):
-        try:
-            if CommonData.runTelemetry:
-                LiveUpdatesTelemetry(self.queue,
-                                    self.current_packet,
-                                    self.dataFormat,
-                                    self.tableLabels).start()
-            self.queue.put_nowait(self.master.after(int(self.TelemFreqVal.get()*1000), self.processTelemetry))
-        except self.queue.Empty:
-            self.queue.put_nowait(self.master.after(int(self.TelemFreqVal.get()*1000), self.processTelemetry))
-        
+        if CommonData.runTelemetry:
+            LiveUpdatesTelemetry(self.queue,
+                                self.current_packet,
+                                self.dataFormat,
+                                self.tableLabels).start()
+        self.queue.put_nowait(self.master.after(int(self.TelemFreqVal.get()*1000), self.processTelemetry))
+
     def processCamera(self):
-        try:
-            if CommonData.runCamera:
-                LiveUpdatesCamera(self.queue,
-                                self.right_pic_panel,
-                                self.panel,self.timestamp,round(float(4096/self.imgbaudrate.get()*8/1000),3)).start()
-            self.queue.put_nowait(self.master.after(int(self.ImgFreqVal.get()*1000), self.processCamera))
-        except self.queue.Empty:
-            self.queue.put_nowait(self.master.after(int(self.ImgFreqVal.get()*1000), self.processCamera))
+        if CommonData.runCamera:
+            LiveUpdatesCamera(self.queue,
+                            self.right_pic_panel,
+                            self.panel,self.timestamp,round(float(4096/self.imgbaudrate.get()*8/1000),3)).start()
+        self.queue.put_nowait(self.master.after(int(self.ImgFreqVal.get()*1000), self.processCamera))
 
     ###### toggles ######
 
