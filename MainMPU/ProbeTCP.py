@@ -33,7 +33,7 @@ class ProbeTCP(threading.Thread):
                 CommonData.commandSocketStatus = True
             else:
                 CommonData.commandSocketStatus = False
-        except socket.SocketException:
+        except socket.timeout:
             CommonData.commandSocketStatus = False
             print(CommonData.commandSocketStatus)
             print("Socket timed out")
