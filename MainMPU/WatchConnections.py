@@ -23,6 +23,7 @@ class WatchConnections(threading.Thread):
         while True:
             try:
                 time.sleep(1)
+                print("command socket status is " + str(CommonData.commandSocketStatus))
 
                 if not CommonData.commandSocketStatus:
                     CommonData.commandAdd = ''
