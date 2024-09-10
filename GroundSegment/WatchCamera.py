@@ -30,8 +30,10 @@ class WatchCamera(threading.Thread):
                 time.sleep(CommonData.ImgFreqVal)
                 if CommonData.runCamera == True:
                     print("LiveUpdatesCamera is running")
-                    LiveUpdatesCamera(self.frame1_right,
+                    l = LiveUpdatesCamera(self.frame1_right,
                                           self.panel,
-                                          self.timestamp).start()
+                                          self.timestamp)
+                    l.start()
+                    l.join()
             except Exception as e:
-                print(f'An exception occurred in the Watch: {e}')
+                print(f'An exception occurred in the WatchCamera: {e}')

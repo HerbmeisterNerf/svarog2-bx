@@ -28,19 +28,27 @@ class WatchCommands(threading.Thread):
             try:
 
                 if CommonData.commandSocketStatus:
-                    ProcessCommands(self.actionqueue).start()
+                    p = ProcessCommands(self.actionqueue)
+                    p.start()
+                    p.join()
                     self.nextaction = self.actionqueue.get()
 
                 if CommonData.commandSocketStatus and self.nextaction != "telemetry" and self.nextaction != "image" and self.nextaction != "NONE":
-                    DoAction(CommonData.nextaction).start()
+                    d = DoAction(CommonData.nextaction)
+                    d.start()
+                    d.join()
                 
                 if CommonData.commandSocketStatus and self.nextaction == "image":
                     UDP_client_info = (CommonData.commandAdd, CommonData.imageSocketPort)
-                    SendImage(CommonData.imageSocket, CommonData.imgbuffer, UDP_client_info).start()
+                    i = SendImage(CommonData.imageSocket, CommonData.imgbuffer, UDP_client_info)
+                    i.start()
+                    i.join()
 
                 if CommonData.commandSocketStatus and self.nextaction == "telemetry":
                     UDP_client_info = (CommonData.commandAdd, CommonData.telemetrySocketPort)
-                    SendTelem(CommonData.telemetrySocket, UDP_client_info).start()
+                    t = SendTelem(CommonData.telemetrySocket, UDP_client_info)
+                    t.start()
+                    t.join()
 
             except Exception as e:
                 print(f'An exception occurred in the Watch: {e}')

@@ -28,7 +28,9 @@ class WatchTelem(threading.Thread):
                 time.sleep(CommonData.TelemFreqVal)
                 if CommonData.runTelemetry == True:
                     print("LiveUpdatesTelemetry is running")
-                    LiveUpdatesTelemetry(self.dataFormat,
-                                        self.tableLabels).start()
+                    l = LiveUpdatesTelemetry(self.dataFormat,
+                                        self.tableLabels)
+                    l.start()
+                    l.join()
             except Exception as e:
-                print(f'An exception occurred in the Watch: {e}')
+                print(f'An exception occurred in the WatchTelem: {e}')

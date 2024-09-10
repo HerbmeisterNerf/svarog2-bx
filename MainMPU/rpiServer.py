@@ -52,13 +52,7 @@ class TCPServerApp:
 
         try:
             WatchConnections().start()
-            #WatchCommands()
-
-            #WatchConnections.daemon = True
-            #WatchCommands.daemon = False
-
-            #WatchConnections().start()
-            #WatchCommands().start()
+            WatchCommands().start()
 
         except Exception as e:
             print(f'An exception occurred in the live updates: {e}')

@@ -47,9 +47,9 @@ class CommonData:
 
     # timers
 
-    TelemFreqVal: float = 0.1
+    TelemFreqVal: float = 1.2
 
-    ImgFreqVal: float = 0.1
+    ImgFreqVal: float = 10
 
     # data rates
 

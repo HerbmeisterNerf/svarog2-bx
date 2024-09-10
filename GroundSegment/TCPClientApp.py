@@ -29,9 +29,9 @@ class TCPClientApp:
         self.master.protocol("WM_DELETE_WINDOW",self.exitfunc)
         master.title("BX34 SVAROG GROUND SEGMENT")
         master.configure(bg='black')
-        CommonData.TelemFreqVal = tk.DoubleVar()
-        CommonData.ImgFreqVal = tk.DoubleVar()
-        CommonData.imgbaudrate = tk.DoubleVar()
+        self.TelemFreqVal = tk.DoubleVar()
+        self.ImgFreqVal = tk.DoubleVar()
+        self.imgbaudrate = tk.DoubleVar()
         self.tableLabels = []
 
         ###### GUI Elements ######
@@ -82,16 +82,16 @@ class TCPClientApp:
         self.disconnect_button = tk.Button(self.left_button_panel, text="Disconnect to server" ,height=1,font=("Arial",8),command=self.disconnect_socket,bg='white', fg='black', state=tk.DISABLED)
         self.disconnect_button.grid(row=1,column=1)
 
-        self.telemFrequency = tk.Scale(self.rates_panel,from_=1.2, to=10, orient="horizontal",width=5,font=("Arial",7),length=150,resolution=0.1,variable=CommonData.TelemFreqVal,label="Telemetry intervals (s)")
+        self.telemFrequency = tk.Scale(self.rates_panel,from_=1.2, to=10, orient="horizontal",width=5,font=("Arial",7),length=150,resolution=0.1,variable=self.TelemFreqVal,label="Telemetry intervals (s)", command=self.change_TelemFreqVal)
         self.telemFrequency.pack(side=tk.TOP,padx=10)
 
         self.telemetryButton = tk.Button(self.left_button_panel, text="Telemetry currently off",height=1,font=("Arial",8), command=self.toggleTelem, bg='red', fg='white', state=tk.DISABLED)
         self.telemetryButton.grid(row=2,column=0)
 
-        self.imgFrequency = tk.Scale(self.rates_panel,from_=10, to=60, orient="horizontal",width=5,font=("Arial",7),length=150,resolution=1,variable=CommonData.ImgFreqVal,label="Image intervals (s)")
+        self.imgFrequency = tk.Scale(self.rates_panel,from_=10, to=60, orient="horizontal",width=5,font=("Arial",7),length=150,resolution=1,variable=self.ImgFreqVal,label="Image intervals (s)", command=self.change_ImgFreqVal)
         self.imgFrequency.pack(side=tk.TOP,padx=10)
 
-        self.imgrate = tk.Scale(self.rates_panel,from_=32, to=1638, orient="horizontal",width=5,font=("Arial",7),length=150,resolution=1,variable=CommonData.imgbaudrate,label="Image bit rate (Kbit/s)")
+        self.imgrate = tk.Scale(self.rates_panel,from_=32, to=1638, orient="horizontal",width=5,font=("Arial",7),length=150,resolution=1,variable=self.imgbaudrate,label="Image bit rate (Kbit/s)", command=self.change_imgbaudrate)
         self.imgrate.pack(side=tk.TOP,padx=10)
 
         self.imageButton = tk.Button(self.left_button_panel, text="Camera currently off", height=1,font=("Arial",8),command=self.toggleCamera, bg='red', fg='white', state=tk.DISABLED)
@@ -271,19 +271,11 @@ class TCPClientApp:
 
         try:
             WatchTCP().start()
-            # WatchTelem(self.dataFormat,
-            #             self.tableLabels).start()
-            # WatchCamera(self.right_pic_panel,
-            #             self.panel,
-            #             self.timestamp).start()
-
-            # WatchTCP.daemon = True
-            # WatchTelem.daemon = True
-            # WatchCamera.daemon = True
-
-            # WatchTCP.start()
-            # WatchTelem.start()
-            # WatchCamera.start()
+            WatchTelem(self.dataFormat,
+                        self.tableLabels).start()
+            WatchCamera(self.right_pic_panel,
+                        self.panel,
+                        self.timestamp).start()
 
         except Exception as e:
             print(f'An exception occurred in the live updates: {e}')
@@ -396,7 +388,17 @@ class TCPClientApp:
         CommonData.client_TCP_socket.send(pin.encode())
     def actuateC4(self):
         pin = "start:C4end:"
-        CommonData.client_TCP_socket.send(pin.encode())    
+        CommonData.client_TCP_socket.send(pin.encode())
+
+    ###### sliders ######
+    def change_TelemFreqVal(self, val):
+        CommonData.TelemFreqVal = self.TelemFreqVal.get()
+    
+    def change_ImgFreqVal(self, val):
+        CommonData.ImgFreqVal = self.ImgFreqVal.get()
+    
+    def change_imgbaudrate(self, val):
+        CommonData.imgbaudrate = self.imgbaudrate.get()
 
 ############ Main ############
 
