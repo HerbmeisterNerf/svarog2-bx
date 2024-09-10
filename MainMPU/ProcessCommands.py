@@ -1,6 +1,7 @@
 ############ standard libraries ############
 import threading
 import re
+import time
 
 ############ custom libraries ############
 from CommonData import CommonData
@@ -38,6 +39,7 @@ class ProcessCommands(threading.Thread):
         except Exception as e:
             print(f'An exception occurred in ProcessCommands: {e}')
             self.queue.put("NONE")
+            time.sleep(1)
 
 ############ Main ############
 
