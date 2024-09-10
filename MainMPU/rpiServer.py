@@ -40,6 +40,7 @@ class TCPServerApp:
         CommonData.awkSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         CommonData.awkSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         CommonData.awkSocket.bind(('', CommonData.awkSocketPort))
+        CommonData.awkSocket.settimeout(3)
         print("Awake socket defined.")
 
     # Methods
@@ -52,13 +53,13 @@ class TCPServerApp:
 
         try:
             WatchConnections()
-            WatchCommands()
+            #WatchCommands()
 
             WatchConnections.daemon = False
-            WatchCommands.daemon = False
+            #WatchCommands.daemon = False
 
             WatchConnections().start()
-            WatchCommands().start()
+            #WatchCommands().start()
 
         except Exception as e:
             print(f'An exception occurred in the live updates: {e}')
@@ -67,7 +68,6 @@ class TCPServerApp:
 
 if  __name__ == '__main__':
     a = TCPServerApp()
-    a.startLiveProcesses()
 
     try:
         a.startLiveProcesses()

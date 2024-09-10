@@ -29,7 +29,9 @@ class WatchConnections(threading.Thread):
                     WaitForConnection().start()
 
                 if CommonData.commandSocketStatus:
-                    ProbeTCP().start()
+                    p = ProbeTCP()
+                    p.start()
+                    p.join()
 
             except Exception as e:
                 print(f'An exception occurred in the Watch: {e}')
