@@ -4,9 +4,7 @@ import time
 
 ############ custom libraries ############
 from CommonData import CommonData
-from RespondTCP import RespondTCP
 from LiveUpdatesTelemetry import LiveUpdatesTelemetry
-from LiveUpdatesCamera import LiveUpdatesCamera
 
 ############ class ############
 class WatchTelem(threading.Thread):
@@ -27,8 +25,8 @@ class WatchTelem(threading.Thread):
     def run(self):
         while True:
             try:
+                time.sleep(CommonData.TelemFreqVal)
                 if CommonData.runTelemetry == True:
-                    time.sleep(CommonData.TelemFreqVal)
                     print("LiveUpdatesTelemetry is running")
                     LiveUpdatesTelemetry(self.dataFormat,
                                         self.tableLabels).start()

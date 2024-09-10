@@ -4,8 +4,6 @@ import time
 
 ############ custom libraries ############
 from CommonData import CommonData
-from RespondTCP import RespondTCP
-from LiveUpdatesTelemetry import LiveUpdatesTelemetry
 from LiveUpdatesCamera import LiveUpdatesCamera
 
 ############ class ############
@@ -29,8 +27,8 @@ class WatchCamera(threading.Thread):
     def run(self):
         while True:
             try:
+                time.sleep(CommonData.ImgFreqVal)
                 if CommonData.runCamera == True:
-                    time.sleep(CommonData.ImgFreqVal)
                     print("LiveUpdatesCamera is running")
                     LiveUpdatesCamera(self.frame1_right,
                                           self.panel,

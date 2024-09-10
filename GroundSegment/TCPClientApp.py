@@ -6,11 +6,8 @@ import queue
 import time
 
 ############ custom libraries ############
-from LiveUpdatesTelemetry import LiveUpdatesTelemetry
-from LiveUpdatesCamera import LiveUpdatesCamera
 from CommonData import CommonData
 from PortCommunication import PortCommunication
-from RespondTCP import RespondTCP
 from WatchTCP import WatchTCP
 from WatchTelem import WatchTelem
 from WatchCamera import WatchCamera
@@ -273,12 +270,21 @@ class TCPClientApp:
         '''
 
         try:
-            WatchTCP().start()
+            WatchTCP()
             WatchTelem(self.dataFormat,
-                        self.tableLabels).start()
+                        self.tableLabels)
             WatchCamera(self.right_pic_panel,
                         self.panel,
-                        self.timestamp).start()
+                        self.timestamp)
+
+            WatchTCP.daemon = True
+            WatchTelem.daemon = True
+            WatchCamera.daemon = True
+
+            WatchTCP.start()
+            WatchTelem.start()
+            WatchCamera.start()
+
         except Exception as e:
             print(f'An exception occurred in the live updates: {e}')
 

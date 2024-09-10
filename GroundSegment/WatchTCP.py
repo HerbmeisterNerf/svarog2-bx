@@ -24,5 +24,6 @@ class WatchTCP(threading.Thread):
                 if CommonData.TCPSTATUS == True:
                     print("RespondTCP is running")
                     RespondTCP().start()
+                    RespondTCP().join()
             except Exception as e:
                 print(f'An exception occurred in the Watch: {e}')

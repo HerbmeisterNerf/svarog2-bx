@@ -4,8 +4,6 @@ import queue
 
 ############ custom libraries ############
 from CommonData import CommonData
-from WaitForConnection import WaitForConnection
-from ProbeTCP import ProbeTCP
 from ProcessCommands import ProcessCommands
 from DoAction import DoAction
 from SendImage import SendImage

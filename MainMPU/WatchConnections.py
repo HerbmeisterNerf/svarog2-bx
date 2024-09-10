@@ -6,10 +6,6 @@ import time
 from CommonData import CommonData
 from WaitForConnection import WaitForConnection
 from ProbeTCP import ProbeTCP
-from ProcessCommands import ProcessCommands
-from DoAction import DoAction
-from SendImage import SendImage
-from SendTelem import SendTelem
 
 ############ class ############
 class WatchConnections(threading.Thread):
