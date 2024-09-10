@@ -52,13 +52,13 @@ class TCPServerApp:
         '''
 
         try:
-            WatchConnections()
+            WatchConnections().start()
             #WatchCommands()
 
-            WatchConnections.daemon = False
+            #WatchConnections.daemon = True
             #WatchCommands.daemon = False
 
-            WatchConnections().start()
+            #WatchConnections().start()
             #WatchCommands().start()
 
         except Exception as e:
