@@ -14,12 +14,11 @@ class LiveUpdatesTelemetry(threading.Thread):
 
 ############ Initializer ############
 
-    def __init__(self, queue, 
+    def __init__(self, 
                 current_packet,
                 dataFormat,
                 tableLabels):
         super().__init__()
-        self.queue = queue
         self.current_packet = current_packet
         self.dataFormat = dataFormat
         self.tableLabels = tableLabels

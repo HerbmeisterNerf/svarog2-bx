@@ -12,6 +12,7 @@ from LiveUpdatesCamera import LiveUpdatesCamera
 from CommonData import CommonData
 from PortCommunication import PortCommunication
 from RespondTCP import RespondTCP
+from Watch import Watch
 
 ############ class ############
 class TCPClientApp:
@@ -271,41 +272,53 @@ class TCPClientApp:
         Starts the live updates for telemetry and camera by means of a thread queue
         '''
 
-        self.queue = queue.Queue()
-        self.queue.put_nowait(self.respondTCP)
-        self.queue.put_nowait(self.processTelemetry)
-        self.queue.put_nowait(self.processCamera)
-        self.master.after(100, self.queue_handler)
+        Watch(self.current_packet,
+                    self.dataFormat,
+                    self.tableLabels,
+                    self.right_pic_panel,
+                    self.panel,
+                    self.timestamp,
+                    round(float(4096/self.imgbaudrate.get()*8/1000),3)).start()
+        print("end watch")
 
-    def queue_handler(self):
-        '''
-        Handles the queue of threads
-        '''
-        try:
-            self.queue.get_nowait()()
-        except queue.Empty:
-            pass
-        self.queue_handler()
+        # self.master.after(100, self.queue_handler)
 
-    def respondTCP(self):
-        if CommonData.TCPSTATUS:
-            RespondTCP().start()
-        self.queue.put_nowait(self.master.after(int(1000), self.respondTCP))
+    # def queue_handler(self):
+    #     '''
+    #     Handles the queue of threads
+    #     '''
+    #     try:
+    #         self.queue.get_nowait()()
+    #     except queue.Empty:
+    #         pass
+    #     self.queue_handler()
 
-    def processTelemetry(self):
-        if CommonData.runTelemetry:
-            LiveUpdatesTelemetry(self.queue,
-                                self.current_packet,
-                                self.dataFormat,
-                                self.tableLabels).start()
-        self.queue.put_nowait(self.master.after(int(self.TelemFreqVal.get()*1000), self.processTelemetry))
+    # def respondTCP(self):
+    #     if CommonData.TCPSTATUS:
+    #         a = RespondTCP()
+    #         a.start()
+    #         a.join()
+    #     # self.queue.put_nowait(self.master.after(int(1000), self.respondTCP()))
+    #     self.master.after(int(1000), self.respondTCP())
 
-    def processCamera(self):
-        if CommonData.runCamera:
-            LiveUpdatesCamera(self.queue,
-                            self.right_pic_panel,
-                            self.panel,self.timestamp,round(float(4096/self.imgbaudrate.get()*8/1000),3)).start()
-        self.queue.put_nowait(self.master.after(int(self.ImgFreqVal.get()*1000), self.processCamera))
+    # def processTelemetry(self):
+    #     if CommonData.runTelemetry:
+    #         a = LiveUpdatesTelemetry(self.queue,
+    #                             self.current_packet,
+    #                             self.dataFormat,
+    #                             self.tableLabels)
+    #         a.start()
+    #         # a.join()
+    #         self.queue.put_nowait(self.master.after(int(self.TelemFreqVal.get()*1000), self.processTelemetry()))
+
+    # def processCamera(self):
+    #     if CommonData.runCamera:
+    #         a = LiveUpdatesCamera(self.queue,
+    #                         self.right_pic_panel,
+    #                         self.panel,self.timestamp,round(float(4096/self.imgbaudrate.get()*8/1000),3))
+    #         a.start()
+    #         # a.join()
+    #         self.queue.put_nowait(self.master.after(int(self.ImgFreqVal.get()*1000), self.processCamera()))
 
     ###### toggles ######
 

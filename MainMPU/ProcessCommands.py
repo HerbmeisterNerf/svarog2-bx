@@ -13,11 +13,11 @@ class ProcessCommands(threading.Thread):
 
 ############ Initializer ############
 
-    def __init__(self, queue, socket):
+    def __init__(self, queue):
         super().__init__()
         #Define selfs here
         self.queue = queue
-        self.socket = socket
+        self.socket = CommonData.commandSocket
 
 ############ Methods ############
 

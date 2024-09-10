@@ -16,12 +16,10 @@ class LiveUpdatesCamera(threading.Thread):
 ############ Initializer ############
 
     def __init__(self,
-                queue,
                 frame1_right,
-                panel,imgtimestamp,rate):
+                panel, imgtimestamp, rate):
 
         super().__init__()
-        self.queue = queue
         self.frame1_right = frame1_right
         self.panel = panel
         self.timestamp = imgtimestamp

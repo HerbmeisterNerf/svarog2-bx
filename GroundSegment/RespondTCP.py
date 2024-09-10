@@ -22,6 +22,7 @@ class RespondTCP(threading.Thread):
     def run(self):
         try:
             awksocket = PortCommunication.open_UDP(CommonData.probe_port)
+            print("Waiting for message")
             msg = awksocket.recvfrom(3)
             print("Received it mate")
             cmd = "ACK"

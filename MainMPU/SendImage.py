@@ -16,13 +16,12 @@ class SendImage(threading.Thread):
 
 ############ Initializer ############
 
-    def __init__(self,socket,buffer,UDP_info,rate):
+    def __init__(self,socket,buffer,UDP_info):
         super().__init__()
         #Define selfs here
         self.socket = socket
         self.buffer = buffer
         self.UDP_info = UDP_info
-        self.rate = rate
 
 ############ Methods ############
 

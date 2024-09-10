@@ -1,5 +1,6 @@
 ############ standard libraries ############
 import threading
+import time
 
 ############ custom libraries ############
 from CommonData import CommonData
@@ -13,19 +14,19 @@ class ProbeTCP(threading.Thread):
 
 ############ Initializer ############
 
-    def __init__(self, queue,socket,port):
+    def __init__(self):
         super().__init__()
         #Define selfs here
-        self.queue = queue
-        self.socket = socket
-        self.info = (CommonData.commandAdd, port)
+        self.socket = CommonData.awkSocket
+        self.port = CommonData.awkSocketPort
 
 ############ Methods ############
 
     def run(self):
+        time.sleep(1)
         try:
             msg = "ACK"
-            self.socket.sendto(msg.encode(), self.info)
+            self.socket.sendto(msg.encode(), (CommonData.commandAdd, self.port))
             print("Sent it mate")
             ack = self.socket.recv(3)
             print("Received it mate")

@@ -17,7 +17,7 @@ class SendTelem(threading.Thread):
 
 ############ Initializer ############
 
-    def __init__(self,socket,UDP_info):
+    def __init__(self, socket, UDP_info):
         super().__init__()
         #Define selfs here
         self.socket = socket
