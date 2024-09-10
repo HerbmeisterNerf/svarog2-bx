@@ -35,8 +35,6 @@ class ProcessCommands(threading.Thread):
                 self.queue.put(("image")) 
             else:
                 self.queue.put((cmsg))
-        except re.error as e:
-            pass
         except Exception as e:
             print(f'An exception occurred in ProcessCommands: {e}')
             self.queue.put("NONE")
