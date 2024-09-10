@@ -40,7 +40,7 @@ class TCPServerApp:
         CommonData.awkSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         CommonData.awkSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         CommonData.awkSocket.bind(('', CommonData.awkSocketPort))
-        CommonData.awkSocket.settimeout(3)
+        CommonData.awkSocket.settimeout(5)
         print("Awake socket defined.")
 
     # Methods
