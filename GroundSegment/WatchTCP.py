@@ -23,7 +23,8 @@ class WatchTCP(threading.Thread):
             try:
                 if CommonData.TCPSTATUS == True:
                     print("RespondTCP is running")
-                    RespondTCP().start()
-                    RespondTCP().join()
+                    r = RespondTCP()
+                    r.start()
+                    r.join()
             except Exception as e:
                 print(f'An exception occurred in the Watch: {e}')
