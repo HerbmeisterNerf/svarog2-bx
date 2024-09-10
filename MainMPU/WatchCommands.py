@@ -12,9 +12,8 @@ from SendImage import SendImage
 from SendTelem import SendTelem
 
 ############ class ############
-class Watch(threading.Thread):
+class WatchCommands(threading.Thread):
     '''
-    This class is responsible for requesting a new image and updating it in the GUI
     '''
 
 ############ Initializer ############
@@ -29,12 +28,8 @@ class Watch(threading.Thread):
     def run(self):
         while True:
             try:
-                if not CommonData.commandSocketStatus:
-                    CommonData.commandAdd = ''
-                    WaitForConnection().start()
 
                 if CommonData.commandSocketStatus:
-                    ProbeTCP().start()
                     ProcessCommands(self.actionqueue).start()
                     self.nextaction = self.actionqueue.get()
 

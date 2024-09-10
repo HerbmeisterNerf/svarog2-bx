@@ -1,6 +1,5 @@
 ############ standard libraries ############
 import threading
-import time
 
 ############ custom libraries ############
 from CommonData import CommonData
@@ -19,7 +18,6 @@ class WaitForConnection(threading.Thread):
 ############ Methods ############
 
     def run(self):
-        time.sleep(1)
         try:
             CommonData.commandSocket.listen(1)
             print('Command socket open waiting for connection...')

@@ -10,7 +10,8 @@ from SendImage import SendImage
 from SendTelem import SendTelem
 from DoAction import DoAction
 from ProbeTCP import ProbeTCP
-from Watch import Watch
+from WatchConnections import WatchConnections
+from WatchCommands import WatchCommands
 
 # Class definition
 class TCPServerApp:
@@ -55,8 +56,11 @@ class TCPServerApp:
         Starts the live updates for telemetry and camera by means of a thread queue
         '''
 
-        Watch().start()
-        print("end watch")
+        try:
+            WatchConnections().start()
+            WatchCommands().start()
+        except Exception as e:
+            print(f'An exception occurred in the live updates: {e}')
 
         # process and compute queues
         # self.queue = queue.Queue(maxsize=15)

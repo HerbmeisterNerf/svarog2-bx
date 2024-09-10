@@ -12,7 +12,9 @@ from LiveUpdatesCamera import LiveUpdatesCamera
 from CommonData import CommonData
 from PortCommunication import PortCommunication
 from RespondTCP import RespondTCP
-from Watch import Watch
+from WatchTCP import WatchTCP
+from WatchTelem import WatchTelem
+from WatchCamera import WatchCamera
 
 ############ class ############
 class TCPClientApp:
@@ -32,8 +34,8 @@ class TCPClientApp:
         self.master.protocol("WM_DELETE_WINDOW",self.exitfunc)
         master.title("BX34 SVAROG GROUND SEGMENT")
         master.configure(bg='black')
-        self.TelemFreqVal = tk.DoubleVar()
-        self.ImgFreqVal = tk.DoubleVar()
+        CommonData.TelemFreqVal = tk.DoubleVar()
+        CommonData.ImgFreqVal = tk.DoubleVar()
         self.imgbaudrate = tk.DoubleVar()
         self.tableLabels = []
 
@@ -85,13 +87,13 @@ class TCPClientApp:
         self.disconnect_button = tk.Button(self.left_button_panel, text="Disconnect to server" ,height=1,font=("Arial",8),command=self.disconnect_socket,bg='white', fg='black', state=tk.DISABLED)
         self.disconnect_button.grid(row=1,column=1)
 
-        self.telemFrequency = tk.Scale(self.rates_panel,from_=1.2, to=10, orient="horizontal",width=5,font=("Arial",7),length=150,resolution=0.1,variable=self.TelemFreqVal,label="Telemetry intervals (s)")
+        self.telemFrequency = tk.Scale(self.rates_panel,from_=1.2, to=10, orient="horizontal",width=5,font=("Arial",7),length=150,resolution=0.1,variable=CommonData.TelemFreqVal,label="Telemetry intervals (s)")
         self.telemFrequency.pack(side=tk.TOP,padx=10)
 
         self.telemetryButton = tk.Button(self.left_button_panel, text="Telemetry currently off",height=1,font=("Arial",8), command=self.toggleTelem, bg='red', fg='white', state=tk.DISABLED)
         self.telemetryButton.grid(row=2,column=0)
 
-        self.imgFrequency = tk.Scale(self.rates_panel,from_=10, to=60, orient="horizontal",width=5,font=("Arial",7),length=150,resolution=1,variable=self.ImgFreqVal,label="Image intervals (s)")
+        self.imgFrequency = tk.Scale(self.rates_panel,from_=10, to=60, orient="horizontal",width=5,font=("Arial",7),length=150,resolution=1,variable=CommonData.ImgFreqVal,label="Image intervals (s)")
         self.imgFrequency.pack(side=tk.TOP,padx=10)
 
         self.imgrate = tk.Scale(self.rates_panel,from_=32, to=1638, orient="horizontal",width=5,font=("Arial",7),length=150,resolution=1,variable=self.imgbaudrate,label="Image bit rate (Kbit/s)")
@@ -272,53 +274,17 @@ class TCPClientApp:
         Starts the live updates for telemetry and camera by means of a thread queue
         '''
 
-        Watch(self.current_packet,
-                    self.dataFormat,
-                    self.tableLabels,
-                    self.right_pic_panel,
-                    self.panel,
-                    self.timestamp,
-                    round(float(4096/self.imgbaudrate.get()*8/1000),3)).start()
-        print("end watch")
-
-        # self.master.after(100, self.queue_handler)
-
-    # def queue_handler(self):
-    #     '''
-    #     Handles the queue of threads
-    #     '''
-    #     try:
-    #         self.queue.get_nowait()()
-    #     except queue.Empty:
-    #         pass
-    #     self.queue_handler()
-
-    # def respondTCP(self):
-    #     if CommonData.TCPSTATUS:
-    #         a = RespondTCP()
-    #         a.start()
-    #         a.join()
-    #     # self.queue.put_nowait(self.master.after(int(1000), self.respondTCP()))
-    #     self.master.after(int(1000), self.respondTCP())
-
-    # def processTelemetry(self):
-    #     if CommonData.runTelemetry:
-    #         a = LiveUpdatesTelemetry(self.queue,
-    #                             self.current_packet,
-    #                             self.dataFormat,
-    #                             self.tableLabels)
-    #         a.start()
-    #         # a.join()
-    #         self.queue.put_nowait(self.master.after(int(self.TelemFreqVal.get()*1000), self.processTelemetry()))
-
-    # def processCamera(self):
-    #     if CommonData.runCamera:
-    #         a = LiveUpdatesCamera(self.queue,
-    #                         self.right_pic_panel,
-    #                         self.panel,self.timestamp,round(float(4096/self.imgbaudrate.get()*8/1000),3))
-    #         a.start()
-    #         # a.join()
-    #         self.queue.put_nowait(self.master.after(int(self.ImgFreqVal.get()*1000), self.processCamera()))
+        try:
+            WatchTCP().start()
+            WatchTelem(self.current_packet,
+                        self.dataFormat,
+                        self.tableLabels).start()
+            WatchCamera(self.right_pic_panel,
+                        self.panel,
+                        self.timestamp,
+                        round(float(4096/self.imgbaudrate.get()*8/1000),3)).start()
+        except Exception as e:
+            print(f'An exception occurred in the live updates: {e}')
 
     ###### toggles ######
 

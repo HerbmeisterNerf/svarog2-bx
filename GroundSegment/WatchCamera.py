@@ -1,5 +1,6 @@
 ############ standard libraries ############
 import threading
+import time
 
 ############ custom libraries ############
 from CommonData import CommonData
@@ -8,21 +9,16 @@ from LiveUpdatesTelemetry import LiveUpdatesTelemetry
 from LiveUpdatesCamera import LiveUpdatesCamera
 
 ############ class ############
-class Watch(threading.Thread):
+class WatchCamera(threading.Thread):
     '''
     This class is responsible for requesting a new image and updating it in the GUI
     '''
 
 ############ Initializer ############
 
-    def __init__(self, 
-                current_packet, dataFormat, tableLabels,
+    def __init__(self,
                 frame1_right, panel, imgtimestamp, rate):
         super().__init__()
-        # telemetry variables
-        self.current_packet = current_packet
-        self.dataFormat = dataFormat
-        self.tableLabels = tableLabels
         # camera variables
         self.frame1_right = frame1_right
         self.panel = panel
@@ -34,16 +30,8 @@ class Watch(threading.Thread):
     def run(self):
         while True:
             try:
-                print("Watch is running")
-                if CommonData.TCPSTATUS == True:
-                    print("RespondTCP is running")
-                    RespondTCP().start()
-                if CommonData.runTelemetry == True:
-                    print("LiveUpdatesTelemetry is running")
-                    LiveUpdatesTelemetry(self.current_packet,
-                                            self.dataFormat,
-                                            self.tableLabels).start()
                 if CommonData.runCamera == True:
+                    time.sleep(CommonData.ImgFreqVal)
                     print("LiveUpdatesCamera is running")
                     LiveUpdatesCamera(self.frame1_right,
                                           self.panel,

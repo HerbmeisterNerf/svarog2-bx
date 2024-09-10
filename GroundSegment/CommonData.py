@@ -44,3 +44,9 @@ class CommonData:
     # Directories
 
     outputTelemetryDir: str = "telemetry_output/"
+
+    # timers
+
+    TelemFreqVal: float = 0.1
+
+    ImgFreqVal: float = 0.1

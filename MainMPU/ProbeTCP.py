@@ -1,6 +1,5 @@
 ############ standard libraries ############
 import threading
-import time
 
 ############ custom libraries ############
 from CommonData import CommonData
@@ -23,7 +22,6 @@ class ProbeTCP(threading.Thread):
 ############ Methods ############
 
     def run(self):
-        time.sleep(1)
         try:
             msg = "ACK"
             self.socket.sendto(msg.encode(), (CommonData.commandAdd, self.port))
