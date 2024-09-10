@@ -1,5 +1,6 @@
 ############ standard libraries ############
 import threading
+import socket
 
 ############ custom libraries ############
 from CommonData import CommonData
@@ -34,6 +35,9 @@ class ProbeTCP(threading.Thread):
                 CommonData.commandSocketStatus = False
         except Exception as e:
             print(f'An exception occurred in ProbeTCP: {e}')
+        except socket.timeout:
+            CommonData.commandSocketStatus = False
+            print("Socket timed out")
 
 ############ Main ############
 
