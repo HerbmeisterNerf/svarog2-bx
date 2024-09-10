@@ -51,11 +51,11 @@ class TCPServerApp:
         '''
 
         try:
-            #WatchConnections()
-            #WatchCommands()
+            WatchConnections()
+            WatchCommands()
 
-            #WatchConnections.daemon = False
-            #WatchCommands.daemon = False
+            WatchConnections.daemon = False
+            WatchCommands.daemon = False
 
             WatchConnections().start()
             WatchCommands().start()
