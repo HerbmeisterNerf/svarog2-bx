@@ -18,10 +18,9 @@ class TCPServerApp:
     def __init__(self):
 
         #Command socket
-        self.commandSocketPort = 12000
         CommonData.commandSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         CommonData.commandSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        CommonData.commandSocket.bind(('', self.commandSocketPort))
+        CommonData.commandSocket.bind(('', CommonData.commandSocketPort))
         print("Command socket defined.")
 
         #Telemetry socket

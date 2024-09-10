@@ -30,6 +30,8 @@ class CommonData:
 
     # ports
 
+    commandSocketPort: int = 12000
+
     imageSocketPort: int = 15000
 
     telemetrySocketPort: int = 11000

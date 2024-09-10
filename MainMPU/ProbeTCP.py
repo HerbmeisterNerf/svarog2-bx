@@ -33,13 +33,18 @@ class ProbeTCP(threading.Thread):
                 CommonData.commandSocketStatus = True
             else:
                 CommonData.commandSocketStatus = False
-                #CommonData.commandSocket.close()
+                self.redoSocket()
         except socket.timeout:
             CommonData.commandSocketStatus = False
-            #CommonData.commandSocket.close()
+            self.redoSocket()
         except Exception as e:
             print(f'An exception occurred in ProbeTCP: {e}')
         
+    def redoSocket(self):
+        CommonData.commandSocket.close()
+        CommonData.commandSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        CommonData.commandSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        CommonData.commandSocket.bind(('', CommonData.commandSocketPort))
 
 ############ Main ############
 
