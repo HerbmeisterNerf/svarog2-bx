@@ -26,7 +26,9 @@ class WatchConnections(threading.Thread):
 
                 if not CommonData.commandSocketStatus:
                     CommonData.commandAdd = ''
-                    WaitForConnection().start()
+                    w = WaitForConnection()
+                    w.start()
+                    w.join()
 
                 if CommonData.commandSocketStatus:
                     p = ProbeTCP()
