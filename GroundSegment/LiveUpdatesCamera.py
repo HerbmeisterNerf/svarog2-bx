@@ -17,13 +17,13 @@ class LiveUpdatesCamera(threading.Thread):
 
     def __init__(self,
                 frame1_right,
-                panel, imgtimestamp, rate):
+                panel, imgtimestamp):
 
         super().__init__()
         self.frame1_right = frame1_right
         self.panel = panel
         self.timestamp = imgtimestamp
-        self.rate = rate
+        self.rate = round(float(4096/CommonData.imgbaudrate.get()*8/1000),3)
 
 ############ Methods ############
 

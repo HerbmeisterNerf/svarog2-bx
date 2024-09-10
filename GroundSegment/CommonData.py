@@ -50,3 +50,7 @@ class CommonData:
     TelemFreqVal: float = 0.1
 
     ImgFreqVal: float = 0.1
+
+    # data rates
+
+    imgbaudrate: int = 32

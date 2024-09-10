@@ -5,6 +5,7 @@ import pandas as pd
 ############ custom libraries ############
 from CommonData import CommonData
 from PortCommunication import PortCommunication
+from MessagePack import MessagePack
 
 ############ class ############
 class LiveUpdatesTelemetry(threading.Thread):
@@ -14,12 +15,11 @@ class LiveUpdatesTelemetry(threading.Thread):
 
 ############ Initializer ############
 
-    def __init__(self, 
-                current_packet,
+    def __init__(self,
                 dataFormat,
                 tableLabels):
         super().__init__()
-        self.current_packet = current_packet
+        self.current_packet = MessagePack()
         self.dataFormat = dataFormat
         self.tableLabels = tableLabels
         self.telemOut_df = pd.DataFrame([[

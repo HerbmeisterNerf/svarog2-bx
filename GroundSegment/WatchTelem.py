@@ -16,11 +16,9 @@ class WatchTelem(threading.Thread):
 
 ############ Initializer ############
 
-    def __init__(self, 
-                current_packet, dataFormat, tableLabels):
+    def __init__(self, dataFormat, tableLabels):
         super().__init__()
         # telemetry variables
-        self.current_packet = current_packet
         self.dataFormat = dataFormat
         self.tableLabels = tableLabels
 
@@ -32,8 +30,7 @@ class WatchTelem(threading.Thread):
                 if CommonData.runTelemetry == True:
                     time.sleep(CommonData.TelemFreqVal)
                     print("LiveUpdatesTelemetry is running")
-                    LiveUpdatesTelemetry(self.current_packet,
-                                            self.dataFormat,
-                                            self.tableLabels).start()
+                    LiveUpdatesTelemetry(self.dataFormat,
+                                        self.tableLabels).start()
             except Exception as e:
                 print(f'An exception occurred in the Watch: {e}')

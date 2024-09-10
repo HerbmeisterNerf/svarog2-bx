@@ -6,7 +6,6 @@ import queue
 import time
 
 ############ custom libraries ############
-from MessagePack import MessagePack
 from LiveUpdatesTelemetry import LiveUpdatesTelemetry
 from LiveUpdatesCamera import LiveUpdatesCamera
 from CommonData import CommonData
@@ -28,7 +27,6 @@ class TCPClientApp:
 
         # other variables
         CommonData.telemetryParameters = 35
-        self.current_packet = MessagePack()
 
         self.master = master
         self.master.protocol("WM_DELETE_WINDOW",self.exitfunc)
@@ -36,7 +34,7 @@ class TCPClientApp:
         master.configure(bg='black')
         CommonData.TelemFreqVal = tk.DoubleVar()
         CommonData.ImgFreqVal = tk.DoubleVar()
-        self.imgbaudrate = tk.DoubleVar()
+        CommonData.imgbaudrate = tk.DoubleVar()
         self.tableLabels = []
 
         ###### GUI Elements ######
@@ -96,7 +94,7 @@ class TCPClientApp:
         self.imgFrequency = tk.Scale(self.rates_panel,from_=10, to=60, orient="horizontal",width=5,font=("Arial",7),length=150,resolution=1,variable=CommonData.ImgFreqVal,label="Image intervals (s)")
         self.imgFrequency.pack(side=tk.TOP,padx=10)
 
-        self.imgrate = tk.Scale(self.rates_panel,from_=32, to=1638, orient="horizontal",width=5,font=("Arial",7),length=150,resolution=1,variable=self.imgbaudrate,label="Image bit rate (Kbit/s)")
+        self.imgrate = tk.Scale(self.rates_panel,from_=32, to=1638, orient="horizontal",width=5,font=("Arial",7),length=150,resolution=1,variable=CommonData.imgbaudrate,label="Image bit rate (Kbit/s)")
         self.imgrate.pack(side=tk.TOP,padx=10)
 
         self.imageButton = tk.Button(self.left_button_panel, text="Camera currently off", height=1,font=("Arial",8),command=self.toggleCamera, bg='red', fg='white', state=tk.DISABLED)
@@ -276,13 +274,11 @@ class TCPClientApp:
 
         try:
             WatchTCP().start()
-            WatchTelem(self.current_packet,
-                        self.dataFormat,
+            WatchTelem(self.dataFormat,
                         self.tableLabels).start()
             WatchCamera(self.right_pic_panel,
                         self.panel,
-                        self.timestamp,
-                        round(float(4096/self.imgbaudrate.get()*8/1000),3)).start()
+                        self.timestamp).start()
         except Exception as e:
             print(f'An exception occurred in the live updates: {e}')
 

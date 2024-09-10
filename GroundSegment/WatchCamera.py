@@ -17,13 +17,12 @@ class WatchCamera(threading.Thread):
 ############ Initializer ############
 
     def __init__(self,
-                frame1_right, panel, imgtimestamp, rate):
+                frame1_right, panel, imgtimestamp):
         super().__init__()
         # camera variables
         self.frame1_right = frame1_right
         self.panel = panel
         self.timestamp = imgtimestamp
-        self.rate = rate
 
 ############ Methods ############
 
@@ -35,7 +34,6 @@ class WatchCamera(threading.Thread):
                     print("LiveUpdatesCamera is running")
                     LiveUpdatesCamera(self.frame1_right,
                                           self.panel,
-                                          self.timestamp,
-                                          self.rate).start()
+                                          self.timestamp).start()
             except Exception as e:
                 print(f'An exception occurred in the Watch: {e}')
