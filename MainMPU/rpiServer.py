@@ -51,14 +51,14 @@ class TCPServerApp:
         '''
 
         try:
-            WatchConnections()
-            WatchCommands()
+            #WatchConnections()
+            #WatchCommands()
 
-            WatchConnections.daemon = False
-            WatchCommands.daemon = False
+            #WatchConnections.daemon = False
+            #WatchCommands.daemon = False
 
-            WatchConnections.start()
-            WatchCommands.start()
+            WatchConnections().start()
+            WatchCommands().start()
 
         except Exception as e:
             print(f'An exception occurred in the live updates: {e}')
@@ -66,10 +66,10 @@ class TCPServerApp:
 # Mainloop
 
 if  __name__ == '__main__':
-    TCPServerApp()
-    TCPServerApp.startLiveProcesses()
+    a = TCPServerApp()
+    a.startLiveProcesses()
 
     try:
-        TCPServerApp.startLiveProcesses()
+        a.startLiveProcesses()
     except KeyboardInterrupt:
         sys.exit(0)
