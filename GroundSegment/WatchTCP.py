@@ -22,7 +22,6 @@ class WatchTCP(threading.Thread):
         while True:
             try:
                 if CommonData.TCPSTATUS == True:
-                    print("RespondTCP is running")
                     r = RespondTCP()
                     r.start()
                     r.join()

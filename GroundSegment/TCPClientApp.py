@@ -270,20 +270,20 @@ class TCPClientApp:
         '''
 
         try:
-            WatchTCP()
-            WatchTelem(self.dataFormat,
-                        self.tableLabels)
-            WatchCamera(self.right_pic_panel,
-                        self.panel,
-                        self.timestamp)
+            WatchTCP().start()
+            # WatchTelem(self.dataFormat,
+            #             self.tableLabels).start()
+            # WatchCamera(self.right_pic_panel,
+            #             self.panel,
+            #             self.timestamp).start()
 
-            WatchTCP.daemon = True
-            WatchTelem.daemon = True
-            WatchCamera.daemon = True
+            # WatchTCP.daemon = True
+            # WatchTelem.daemon = True
+            # WatchCamera.daemon = True
 
-            WatchTCP.start()
-            WatchTelem.start()
-            WatchCamera.start()
+            # WatchTCP.start()
+            # WatchTelem.start()
+            # WatchCamera.start()
 
         except Exception as e:
             print(f'An exception occurred in the live updates: {e}')
