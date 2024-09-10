@@ -23,7 +23,7 @@ class LiveUpdatesCamera(threading.Thread):
         self.frame1_right = frame1_right
         self.panel = panel
         self.timestamp = imgtimestamp
-        self.rate = round(float(4096/CommonData.imgbaudrate.get()*8/1000),3)
+        self.rate = round(float(4096/CommonData.imgbaudrate*8/1000),3)
 
 ############ Methods ############
 
