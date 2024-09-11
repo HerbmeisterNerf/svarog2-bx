@@ -109,11 +109,8 @@ class LiveUpdatesTelemetry(threading.Thread):
 
     def run(self):
         try:
-            if CommonData.TCPSTATUS == True:
-                self.__request_telemetry()
-                self.__update_data_table()
-            else:
-                print("Not connected to server")
+            self.__request_telemetry()
+            self.__update_data_table()
         except Exception as e:
             print(f'An exception occurred: {e}')
 
