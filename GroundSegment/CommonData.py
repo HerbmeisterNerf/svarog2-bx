@@ -37,6 +37,8 @@ class CommonData:
 
     runCamera: bool = False
 
+    firstCSV: bool = True
+
     # Output flags
 
     outputTelemetry: bool = False
