@@ -276,7 +276,6 @@ class TCPClientApp:
             WatchCamera(self.right_pic_panel,
                         self.panel,
                         self.timestamp).start()
-
         except Exception as e:
             print(f'An exception occurred in the live updates: {e}')
 
