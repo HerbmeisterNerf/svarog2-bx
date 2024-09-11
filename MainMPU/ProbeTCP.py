@@ -26,9 +26,7 @@ class ProbeTCP(threading.Thread):
         try:
             msg = "ACK"
             self.socket.sendto(msg.encode(), (CommonData.commandAdd, self.port))
-            print("Sent it mate")
             ack = self.socket.recv(3)
-            print("Received it mate")
             if ack.decode() == "ACK":
                 CommonData.commandSocketStatus = True
             else:
