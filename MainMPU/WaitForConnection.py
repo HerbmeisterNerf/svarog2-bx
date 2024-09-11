@@ -26,7 +26,7 @@ class WaitForConnection(threading.Thread):
             print('Connection established with ' + TCPadd[0])
             CommonData.commandSocketStatus = True
             CommonData.commandAdd = TCPadd[0]
-            time.sleep(0.1)
+            time.sleep(0.1) # to allow time for things to update in the background, prevents a bug
         except Exception as e:
             print(f'An exception occurred in WaitForConnection: {e}')
 
