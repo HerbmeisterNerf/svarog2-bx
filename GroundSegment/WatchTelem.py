@@ -27,7 +27,6 @@ class WatchTelem(threading.Thread):
             try:
                 time.sleep(CommonData.TelemFreqVal)
                 if CommonData.runTelemetry:
-                    print("LiveUpdatesTelemetry is running")
                     l = LiveUpdatesTelemetry(self.dataFormat,
                                         self.tableLabels)
                     l.start()

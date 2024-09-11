@@ -29,7 +29,6 @@ class WatchCamera(threading.Thread):
             try:
                 time.sleep(CommonData.ImgFreqVal)
                 if CommonData.runCamera == True:
-                    print("LiveUpdatesCamera is running")
                     l = LiveUpdatesCamera(self.frame1_right,
                                           self.panel,
                                           self.timestamp)

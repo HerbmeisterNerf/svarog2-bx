@@ -27,7 +27,7 @@ class CommonData:
 
     server_TCP_port: int = 12000
 
-    server_name: str = "192.168.1.81"
+    server_name: str = "155.198.40.229"#"192.168.1.81"
 
     # Flags
 
