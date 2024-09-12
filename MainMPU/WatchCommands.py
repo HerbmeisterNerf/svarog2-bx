@@ -26,7 +26,14 @@ class WatchCommands(threading.Thread):
     def run(self):
         while True:
             try:
+                # prep sockets and threads
+                UDP_client_info_image = (CommonData.commandAdd, CommonData.imageSocketPort)
+                i = SendImage(CommonData.imageSocket, CommonData.imgbuffer, UDP_client_info_image)
 
+                UDP_client_info_telem = (CommonData.commandAdd, CommonData.telemetrySocketPort)
+                t = SendTelem(CommonData.telemetrySocket, UDP_client_info_telem)
+
+                # checks
                 if CommonData.commandSocketStatus:
                     p = ProcessCommands(self.actionqueue)
                     p.start()
@@ -39,15 +46,15 @@ class WatchCommands(threading.Thread):
                     d.join()
                 
                 if CommonData.commandSocketStatus and self.nextaction == "image":
-                    UDP_client_info = (CommonData.commandAdd, CommonData.imageSocketPort)
-                    i = SendImage(CommonData.imageSocket, CommonData.imgbuffer, UDP_client_info)
                     i.start()
-                    i.join()
 
                 if CommonData.commandSocketStatus and self.nextaction == "telemetry":
-                    UDP_client_info = (CommonData.commandAdd, CommonData.telemetrySocketPort)
-                    t = SendTelem(CommonData.telemetrySocket, UDP_client_info)
                     t.start()
+
+                if CommonData.commandSocketStatus and self.nextaction == "image":
+                    i.join()
+                
+                if CommonData.commandSocketStatus and self.nextaction == "telemetry":
                     t.join()
 
             except Exception as e:
