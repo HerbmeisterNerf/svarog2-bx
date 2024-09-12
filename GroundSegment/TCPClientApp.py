@@ -11,6 +11,7 @@ from PortCommunication import PortCommunication
 from WatchTCP import WatchTCP
 from WatchTelem import WatchTelem
 from WatchCamera import WatchCamera
+from WatchPing import WatchPing
 
 ############ class ############
 class TCPClientApp:
@@ -32,6 +33,8 @@ class TCPClientApp:
         self.TelemFreqVal = tk.DoubleVar()
         self.ImgFreqVal = tk.DoubleVar()
         self.imgbaudrate = tk.DoubleVar()
+        self.ActionButtons = tk.IntVar()
+        self.ActionButtons = 0
         self.tableLabels = []
 
         ###### GUI Elements ######
@@ -75,7 +78,11 @@ class TCPClientApp:
         self.important_panel.grid(column=2,row=0)
         self.important_panel.pack_propagate(False)
 
+
         self.add_logo(self.left_button_panel)
+        self.pingServer = tk.Label(self.left_button_panel,text="Connection status")
+        self.pingServer.grid(row=0,column=1)
+
         self.connect_button = tk.Button(self.left_button_panel, text="Connect to server",height=1,font=("Arial",8), command=self.connect_socket, bg='white', fg='black')
         self.connect_button.grid(row=1,column=0)
 
@@ -120,6 +127,8 @@ class TCPClientApp:
         self.BW2Button.grid(column=1,row=1,padx=2,pady=4)
         self.MOTButton = tk.Button(self.actions_panel,text="MOT EN",font=("Arial",7),  command=self.actuateMOT ,state=tk.DISABLED)
         self.MOTButton.grid(column=2,row=1,padx=2,pady=4)
+        self.AccEN = tk.Checkbutton(self.actions_panel,command=self.toggleActionButtons)
+        self.AccEN.grid(column=3,row=1,padx=2,pady=4)
 
         self.C1Button = tk.Button(self.actions_panel,text="C1 EN",font=("Arial",7),  command=self.actuateC1 ,state=tk.DISABLED)
         self.C1Button.grid(column=0,row=2,padx=2,pady=4)
@@ -189,9 +198,6 @@ class TCPClientApp:
         self.H4Button.configure(state=tk.NORMAL)
         self.H5Button.configure(state=tk.NORMAL)
         self.H6Button.configure(state=tk.NORMAL)
-        self.BW1Button.configure(state=tk.NORMAL)
-        self.BW2Button.configure(state=tk.NORMAL)
-        self.MOTButton.configure(state=tk.NORMAL)
         self.C1Button.configure(state=tk.NORMAL)
         self.C2Button.configure(state=tk.NORMAL)
         self.C3Button.configure(state=tk.NORMAL)
@@ -227,9 +233,6 @@ class TCPClientApp:
         self.H4Button.configure(state=tk.DISABLED)
         self.H5Button.configure(state=tk.DISABLED)
         self.H6Button.configure(state=tk.DISABLED)
-        self.BW1Button.configure(state=tk.DISABLED)
-        self.BW2Button.configure(state=tk.DISABLED)
-        self.MOTButton.configure(state=tk.DISABLED)
         self.C1Button.configure(state=tk.DISABLED)
         self.C2Button.configure(state=tk.DISABLED)
         self.C3Button.configure(state=tk.DISABLED)
@@ -270,6 +273,7 @@ class TCPClientApp:
         '''
 
         try:
+            WatchPing(self.pingServer).start()
             WatchTCP().start()
             WatchTelem(self.dataFormat,
                         self.tableLabels).start()
@@ -280,6 +284,22 @@ class TCPClientApp:
             print(f'An exception occurred in the live updates: {e}')
 
     ###### toggles ######
+
+    def toggleActionButtons(self):
+        print("HOLA")
+        print(self.ActionButtons)
+        if self.ActionButtons == 1:
+            self.BW1Button.config(state=tk.DISABLED)
+            self.BW2Button.config(state=tk.DISABLED)
+            self.MOTButton.config(state=tk.DISABLED)
+            self.ActionButtons = 0
+        elif self.ActionButtons == 0:
+            self.BW1Button.config(state=tk.NORMAL)
+            self.BW2Button.config(state=tk.NORMAL)
+            self.MOTButton.config(state=tk.NORMAL)
+            self.ActionButtons = 1
+        else:
+            pass
 
     def __toggleOff(self, button, name: str):
         '''
