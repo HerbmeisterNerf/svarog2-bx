@@ -33,7 +33,7 @@ class WatchCommands(threading.Thread):
                     p.join()
                     self.nextaction = self.actionqueue.get()
 
-                if CommonData.commandSocketStatus and self.nextaction != "telemetry" and self.nextaction != "image" and self.nextaction != "NONE":
+                if CommonData.commandSocketStatus and self.nextaction != "telemetry" and self.nextaction != "image" and self.nextaction != "NONE" and self.nextaction != "":
                     d = DoAction(self.nextaction)
                     d.start()
                     d.join()

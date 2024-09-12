@@ -2,8 +2,6 @@
 import tkinter as tk
 from PIL import Image, ImageTk
 import pandas as pd
-import queue
-import time
 
 ############ custom libraries ############
 from CommonData import CommonData
