@@ -6,6 +6,7 @@ import sys
 from CommonData import CommonData
 from WatchConnections import WatchConnections
 from WatchCommands import WatchCommands
+from WatchImage import WatchImage
 
 # Class definition
 class TCPServerApp:
@@ -53,6 +54,7 @@ class TCPServerApp:
         try:
             WatchConnections().start()
             WatchCommands().start()
+            WatchImage().start()
 
         except Exception as e:
             print(f'An exception occurred in the live updates: {e}')

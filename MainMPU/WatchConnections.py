@@ -36,4 +36,4 @@ class WatchConnections(threading.Thread):
                     p.join()
 
             except Exception as e:
-                print(f'An exception occurred in the Watch: {e}')
+                print(f'An exception occurred in the Watch Connections: {e}')
