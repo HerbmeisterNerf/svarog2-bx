@@ -37,7 +37,7 @@ class ProbeTCP(threading.Thread):
             self.redoSocket()
         except Exception as e:
             print(f'An exception occurred in ProbeTCP: {e}')
-        
+
     def redoSocket(self):
         CommonData.commandSocket.close()
         CommonData.commandSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
