@@ -35,6 +35,8 @@ class TCPClientApp:
         self.imgbaudrate = tk.DoubleVar()
         self.ActionButtons = tk.IntVar()
         self.ActionButtons = 0
+        self.PisButtons = tk.IntVar()
+        self.PisButtons = 0
         self.tableLabels = []
 
         ###### GUI Elements ######
@@ -189,9 +191,18 @@ class TCPClientApp:
         self.actions_panel.grid(column=1,row=0)
         self.actions_panel.grid_propagate(False)
 
-        self.important_panel = tk.Frame(self.right_button_panel,width=150,height=130,bg="red")
+        self.important_panel = tk.Frame(self.right_button_panel,width=150,height=130)
         self.important_panel.grid(column=2,row=0)
-        self.important_panel.pack_propagate(False)
+        self.important_panel.grid_propagate(False)
+
+        self.autoheater = tk.Checkbutton(self.important_panel,text="Auto Heating")
+        self.autoheater.grid(row=0,column=0,padx=2,pady=2)
+
+        self.saveimgs = tk.Checkbutton(self.important_panel,text="Save images")
+        self.saveimgs.grid(row=1,column=0,padx=2,pady=2)
+
+        self.savetelem = tk.Checkbutton(self.important_panel,text="Save Telem")
+        self.savetelem.grid(row=2,column=0,padx=2,pady=2)
 
 
         self.add_logo(self.left_button_panel)
@@ -253,6 +264,8 @@ class TCPClientApp:
         self.C3Button.grid(column=2,row=2,padx=2,pady=4)
         self.C4Button = tk.Button(self.actions_panel,text="C4 EN",font=("Arial",7),  command=self.actuateC4 ,state=tk.DISABLED)
         self.C4Button.grid(column=3,row=2,padx=2,pady=4)
+        self.PisEN = tk.Checkbutton(self.actions_panel,command=self.togglePisButtons)
+        self.PisEN.grid(column=4,row=2,padx=2,pady=4)
 
         self.timestamp = tk.StringVar()
         self.timestamp.set('timestamp')
@@ -316,10 +329,7 @@ class TCPClientApp:
         self.H4Button.configure(state=tk.NORMAL)
         self.H5Button.configure(state=tk.NORMAL)
         self.H6Button.configure(state=tk.NORMAL)
-        self.C1Button.configure(state=tk.NORMAL)
-        self.C2Button.configure(state=tk.NORMAL)
-        self.C3Button.configure(state=tk.NORMAL)
-        self.C4Button.configure(state=tk.NORMAL)
+
 
         # Update server request buttons
         self.telemetryButton.configure(state=tk.NORMAL)
@@ -351,10 +361,7 @@ class TCPClientApp:
         self.H4Button.configure(state=tk.DISABLED)
         self.H5Button.configure(state=tk.DISABLED)
         self.H6Button.configure(state=tk.DISABLED)
-        self.C1Button.configure(state=tk.DISABLED)
-        self.C2Button.configure(state=tk.DISABLED)
-        self.C3Button.configure(state=tk.DISABLED)
-        self.C4Button.configure(state=tk.DISABLED)
+
 
         # Close the TCP connection
         PortCommunication.close_TCP()
@@ -404,8 +411,6 @@ class TCPClientApp:
     ###### toggles ######
 
     def toggleActionButtons(self):
-        print("HOLA")
-        print(self.ActionButtons)
         if self.ActionButtons == 1:
             self.BW1Button.config(state=tk.DISABLED)
             self.BW2Button.config(state=tk.DISABLED)
@@ -416,6 +421,22 @@ class TCPClientApp:
             self.BW2Button.config(state=tk.NORMAL)
             self.MOTButton.config(state=tk.NORMAL)
             self.ActionButtons = 1
+        else:
+            pass
+    
+    def togglePisButtons(self):
+        if self.PisButtons == 1:
+            self.C1Button.config(state=tk.DISABLED)
+            self.C2Button.config(state=tk.DISABLED)
+            self.C3Button.config(state=tk.DISABLED)
+            self.C4Button.config(state=tk.DISABLED)
+            self.PisButtons = 0
+        elif self.PisButtons == 0:
+            self.C1Button.config(state=tk.NORMAL)
+            self.C2Button.config(state=tk.NORMAL)
+            self.C3Button.config(state=tk.NORMAL)
+            self.C4Button.config(state=tk.NORMAL)
+            self.PisButtons = 1
         else:
             pass
 
