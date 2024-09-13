@@ -23,7 +23,7 @@ class LiveUpdatesCamera(threading.Thread):
         self.frame1_right = frame1_right
         self.panel = panel
         self.timestamp = imgtimestamp
-        self.rate = round(float(4096/CommonData.imgbaudrate*8/1000),3)
+        self.rate = round(float(32/CommonData.imgbaudrate*8/1000),3)
 
 ############ Methods ############
 
@@ -52,7 +52,7 @@ class LiveUpdatesCamera(threading.Thread):
 
         with open(self.filename, 'wb') as f:
             while received < total_size:
-                bytes_read = client_UDP_socket.recvfrom(4096)[0]
+                bytes_read = client_UDP_socket.recvfrom(32)[0]
 
                 if not bytes_read:
                     break  # The socket is closed

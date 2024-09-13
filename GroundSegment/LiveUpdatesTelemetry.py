@@ -1,7 +1,7 @@
 ############ standard libraries ############
 import threading
 import csv
-
+import time
 ############ custom libraries ############
 from CommonData import CommonData
 from PortCommunication import PortCommunication
@@ -84,16 +84,60 @@ class LiveUpdatesTelemetry(threading.Thread):
         client_UDP_socket = PortCommunication.open_UDP(CommonData.telemetry_port_UDP) 
         message = "start:TEend:"
         CommonData.client_TCP_socket.send(message.encode())
-        bytes_read = client_UDP_socket.recvfrom(1024)
-        telem =  bytes_read[0].decode("utf-8")
+        time.sleep(0.1)
+        total_length = int(client_UDP_socket.recvfrom(200)[0].decode().strip())
+        #print(total_length)
+        received_data = ''
+        bytes_received = 0
+    
+    # Loop to receive all the data in chunks
+        while bytes_received < total_length:
+            #print("here")
+            chunk = client_UDP_socket.recvfrom(16)[0].decode()
+            received_data += str(chunk)
+            bytes_received += len(str(chunk))
+            if len(chunk)< 16:
+                break
+        #bytes_read = client_UDP_socket.recvfrom(200)
+        #print(received_data)
+        telem =  received_data
         self.__process_telemetry(telem)
         PortCommunication.close_UDP(client_UDP_socket)
 
     def __process_telemetry(self,string) -> None:
         variables = string.split(",")
-        for each in variables:
-            var,val = each.split("=")
-            setattr(self.current_packet,var,val)
+        
+        setattr(self.current_packet,"voltage_28V",variables[2])
+        setattr(self.current_packet,"voltage_5V",variables[3])
+        setattr(self.current_packet,"voltage_12V",variables[4])
+        setattr(self.current_packet,"voltage_24V",variables[5])
+        setattr(self.current_packet,"current_5V",variables[6])
+        setattr(self.current_packet,"current_12V",variables[7])
+        setattr(self.current_packet,"current_24V",variables[8])
+        setattr(self.current_packet,"pressure",variables[10])
+        setattr(self.current_packet,"imu_acc_x",variables[14])
+        setattr(self.current_packet,"imu_acc_y",variables[15])
+        setattr(self.current_packet,"imu_acc_z",variables[16])
+        setattr(self.current_packet,"heater_1_status",variables[17])
+        setattr(self.current_packet,"heater_2_status",variables[18])
+        setattr(self.current_packet,"heater_3_status",variables[19])
+        setattr(self.current_packet,"heater_4_status",variables[20])
+        setattr(self.current_packet,"heater_5_status",variables[21])
+        setattr(self.current_packet,"heater_6_status",variables[22])
+        setattr(self.current_packet,"temp_1_status",variables[23])
+        setattr(self.current_packet,"temp_2_status",variables[24])
+        setattr(self.current_packet,"temp_3_status",variables[25])
+        setattr(self.current_packet,"temp_4_status",variables[26])
+        setattr(self.current_packet,"temp_5_status",variables[27])
+        setattr(self.current_packet,"temp_6_status",variables[28])
+        setattr(self.current_packet,"burn_wire_1_status",variables[29])
+        setattr(self.current_packet,"burn_wire_2_status",variables[30])
+        setattr(self.current_packet,"current_limiting_status",variables[31])
+        setattr(self.current_packet,"rpi_IO_1",variables[32])
+        setattr(self.current_packet,"rpi_IO_2",variables[33])
+        setattr(self.current_packet,"rpi_IO_3",variables[34])
+        
+
 
     def __formatdata(self) -> list:
         data = []
@@ -127,10 +171,10 @@ class LiveUpdatesTelemetry(threading.Thread):
         data.insert(27,int(self.current_packet.burn_wire_1_status))
         data.insert(28,int(self.current_packet.burn_wire_2_status))
         data.insert(29,int(self.current_packet.current_limiting_status))
-        data.insert(30,int(self.current_packet.rpi_1_status))
-        data.insert(31,int(self.current_packet.rpi_2_status))
-        data.insert(32,int(self.current_packet.rpi_3_status))
-        data.insert(33,int(self.current_packet.rpi_4_status))
+        data.insert(30,int(self.current_packet.rpi_IO_1))
+        data.insert(31,int(self.current_packet.rpi_IO_2))
+        data.insert(32,int(self.current_packet.rpi_IO_3))
+        data.insert(33,int(self.current_packet.rpi_IO_4))
         data.insert(34,float(self.current_packet.motor_speed))
         return data
 
