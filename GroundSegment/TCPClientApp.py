@@ -35,6 +35,8 @@ class TCPClientApp:
         self.imgbaudrate = tk.DoubleVar()
         self.ActionButtons = tk.IntVar()
         self.ActionButtons = 0
+        self.SaveCam = tk.IntVar(value=0)
+        self.SaveTelem = tk.IntVar(value=0)
         self.PisButtons = tk.IntVar()
         self.PisButtons = 0
         self.tableLabels = []
@@ -198,10 +200,10 @@ class TCPClientApp:
         self.autoheater = tk.Checkbutton(self.important_panel,text="Auto Heating")
         self.autoheater.grid(row=0,column=0,padx=2,pady=2)
 
-        self.saveimgs = tk.Checkbutton(self.important_panel,text="Save images")
+        self.saveimgs = tk.Checkbutton(self.important_panel,text="Save images", command=self.toggleCamSaves)
         self.saveimgs.grid(row=1,column=0,padx=2,pady=2)
 
-        self.savetelem = tk.Checkbutton(self.important_panel,text="Save Telem")
+        self.savetelem = tk.Checkbutton(self.important_panel,text="Save Telem",command=self.toggleOutputTelemetry)
         self.savetelem.grid(row=2,column=0,padx=2,pady=2)
 
 
@@ -230,8 +232,8 @@ class TCPClientApp:
         self.imageButton = tk.Button(self.left_button_panel, text="Camera currently off", height=1,font=("Arial",8),command=self.toggleCamera, bg='red', fg='white', state=tk.DISABLED)
         self.imageButton.grid(row=2,column=1)
 
-        self.outputTelemetryButton = tk.Button(self.left_button_panel, text="Telemetry output currently off", height=1,font=("Arial",8),command=self.toggleOutputTelemetry, bg='red', fg='white', state=tk.DISABLED)
-        self.outputTelemetryButton.grid(row=3,column=0)
+        #self.outputTelemetryButton = tk.Button(self.left_button_panel, text="Telemetry output currently off", height=1,font=("Arial",8),command=self.toggleOutputTelemetry, bg='red', fg='white', state=tk.DISABLED)
+        #self.outputTelemetryButton.grid(row=3,column=0)
 
         # Action buttons
         self.H1Button = tk.Button(self.actions_panel,text="Heater 1",font=("Arial",7),  command=self.actuateH1 ,state=tk.DISABLED)
@@ -335,7 +337,7 @@ class TCPClientApp:
         self.telemetryButton.configure(state=tk.NORMAL)
         self.imageButton.configure(state=tk.NORMAL)
         # Update output buttons
-        self.outputTelemetryButton.configure(state=tk.NORMAL)
+        #self.outputTelemetryButton.configure(state=tk.NORMAL)
         # Print connection status
         print("TCP client running...")
         print("Connecting to server at IP: ", CommonData.server_name, " PORT: ", CommonData.server_TCP_port)
@@ -349,7 +351,7 @@ class TCPClientApp:
 
         # Update server request buttons
         self.toggleOutputTelemetry(False)
-        self.outputTelemetryButton.configure(state=tk.DISABLED)
+        #self.outputTelemetryButton.configure(state=tk.DISABLED)
         self.toggleTelem(False)
         self.telemetryButton.configure(state=tk.DISABLED)
         self.toggleCamera(False)
@@ -399,16 +401,28 @@ class TCPClientApp:
 
         try:
             #WatchPing(self.pingServer).start()
-            #WatchTCP().start()
+            WatchTCP().start()
             WatchTelem(self.dataFormat,
                         self.tableLabels).start()
             WatchCamera(self.right_pic_panel,
                         self.panel,
-                        self.timestamp).start()
+                        self.timestamp,self.SaveCam).start()
         except Exception as e:
             print(f'An exception occurred in the live updates: {e}')
 
     ###### toggles ######
+
+    def toggleCamSaves(self):
+        
+        if self.SaveCam.get() == 1:
+            self.SaveCam.set(0)
+            print(self.SaveCam)
+        elif self.SaveCam.get() == 0:
+            self.SaveCam.set(1)
+            print(self.SaveCam)
+        else:
+            pass
+
 
     def toggleActionButtons(self):
         if self.ActionButtons == 1:
@@ -495,17 +509,17 @@ class TCPClientApp:
         Switches the output telemetry on or off
         '''
 
-        name = "Telemetry output"
+        #name = "Telemetry output"
         if flag: # nominal behaviour
             if CommonData.outputTelemetry:
                 CommonData.outputTelemetry = False
-                self.__toggleOff(self.outputTelemetryButton, name)
+                #self.__toggleOff(self.outputTelemetryButton, name)
             else:
                 CommonData.outputTelemetry = True
-                self.__toggleOn(self.outputTelemetryButton, name)
+                #self.__toggleOn(self.outputTelemetryButton, name)
         else: # forced shut down
             CommonData.outputTelemetry = False
-            self.__toggleOff(self.outputTelemetryButton, name)
+            #self.__toggleOff(self.outputTelemetryButton, name)
 
     ###### actuators ######
     def actuateH1(self):

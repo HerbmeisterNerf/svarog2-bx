@@ -30,6 +30,6 @@ class WatchTelem(threading.Thread):
                     l = LiveUpdatesTelemetry(self.dataFormat,
                                         self.tableLabels)
                     l.start()
-                    l.join()
+                    l.join(3)
             except Exception as e:
                 print(f'An exception occurred in the WatchTelem: {e}')

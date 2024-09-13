@@ -136,6 +136,7 @@ class LiveUpdatesTelemetry(threading.Thread):
         setattr(self.current_packet,"rpi_IO_1",variables[32])
         setattr(self.current_packet,"rpi_IO_2",variables[33])
         setattr(self.current_packet,"rpi_IO_3",variables[34])
+        setattr(self.current_packet,"rpi_IO_4",variables[35])
         
 
 
