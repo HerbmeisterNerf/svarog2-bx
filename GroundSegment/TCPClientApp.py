@@ -2,6 +2,8 @@
 import tkinter as tk
 from PIL import Image, ImageTk
 import pandas as pd
+from tkinter import messagebox
+from tkinter import ttk
 
 ############ custom libraries ############
 from CommonData import CommonData
@@ -33,18 +35,137 @@ class TCPClientApp:
         self.imgbaudrate = tk.DoubleVar()
         self.ActionButtons = tk.IntVar()
         self.ActionButtons = 0
+        self.SaveCam = tk.IntVar(value=0)
+        self.SaveTelem = tk.IntVar(value=0)
+        self.PisButtons = tk.IntVar()
+        self.PisButtons = 0
         self.tableLabels = []
 
         ###### GUI Elements ######
 
         # Add logo
         #Main two frames
-        self.left_panel = tk.Frame(master,width=300,height=500,bg="grey")
+        self.left_panel = tk.Frame(master,width=300,height=600)
         self.left_panel.grid(row=0,column=0)
         self.left_panel.grid_propagate(False)
-        self.right_panel = tk.Frame(master,width=600,height=500,bg="white")
+        self.right_panel = tk.Frame(master,width=600,height=600)
         self.right_panel.grid(row=0,column=1)
         self.right_panel.grid_propagate(False)
+        self.right2_panel = tk.Frame(master,width=200,height=600)
+        self.right2_panel.grid(row=0,column=2)
+        self.right2_panel.grid_propagate(False)
+
+
+        #Frames for testing and controlling RPIs
+
+        self.rpi1testpanel = tk.Frame(self.right2_panel,width=194,height=80)
+        self.rpi1testpanel.grid(row=0,column=1,pady=20,padx=3)
+        self.rpi1testpanel.grid_propagate(False)
+        #testo = tk.Label(self.rpi1testpanel,text="RPI1")
+        #testo.grid(row=0,column=1)
+        self.rpi1Stat = tk.StringVar
+        self.rpi1Stat = "red"
+        self.rpi1status = tk.Frame(self.rpi1testpanel,width=20,height=20,bg=self.rpi1Stat)
+        self.rpi1status.grid(row=0,column=0,padx=2,pady=2)
+        testo1 = tk.Label(self.rpi1testpanel,text="RPI1")
+        testo1.grid(row=0,column=1)
+        self.R1 = tk.Button(self.rpi1testpanel,text="Record",height=1,font=("Arial",8)) 
+        self.R1.grid(row=1,column=1,padx=2,pady=2)
+        self.S1 = tk.Button(self.rpi1testpanel,text="Status",height=1,font=("Arial",8)) 
+        self.S1.grid(row=1,column=2,padx=2,pady=2)
+        self.Check1 = tk.Button(self.rpi1testpanel,text="Check",height=1,font=("Arial",8),command=self.HealthC1) 
+        self.Check1.grid(row=1,column=3,padx=2,pady=2)
+        TR1 = tk.Label(self.rpi1testpanel,text="Recorded %",font=("Arial",8))
+        TR1.grid(row=2,column=2,padx=2,pady=2)
+        TW1 = tk.Label(self.rpi1testpanel,text="Written %",font=("Arial",8))
+        TW1.grid(row=2,column=3,padx=2,pady=2)
+
+#RPI 2
+        self.rpi2testpanel = tk.Frame(self.right2_panel,width=194,height=80)
+        self.rpi2testpanel.grid(row=1,column=1,pady=20,padx=3)
+        self.rpi2testpanel.grid_propagate(False)
+        #testo = tk.Label(self.rpi1testpanel,text="RPI1")
+        #testo.grid(row=0,column=1)
+        self.rpi2Stat = tk.StringVar
+        self.rpi2Stat = "red"
+        self.rpi2status = tk.Frame(self.rpi2testpanel,width=20,height=20,bg=self.rpi2Stat)
+        self.rpi2status.grid(row=0,column=0,padx=2,pady=2)
+        testo2 = tk.Label(self.rpi2testpanel,text="RPI2")
+        testo2.grid(row=0,column=1)
+        self.R2 = tk.Button(self.rpi2testpanel,text="Record",height=1,font=("Arial",8)) 
+        self.R2.grid(row=1,column=1,padx=2,pady=2)
+        self.S2 = tk.Button(self.rpi2testpanel,text="Status",height=1,font=("Arial",8)) 
+        self.S2.grid(row=1,column=2,padx=2,pady=2)
+        self.Check2 = tk.Button(self.rpi2testpanel,text="Check",height=1,font=("Arial",8)) 
+        self.Check2.grid(row=1,column=3,padx=2,pady=2)
+        TR2 = tk.Label(self.rpi2testpanel,text="Recorded %",font=("Arial",8))
+        TR2.grid(row=2,column=2,padx=2,pady=2)
+        TW2 = tk.Label(self.rpi2testpanel,text="Written %",font=("Arial",8))
+        TW2.grid(row=2,column=3,padx=2,pady=2) 
+ 
+##RPI 3
+        self.rpi3testpanel = tk.Frame(self.right2_panel,width=194,height=80)
+        self.rpi3testpanel.grid(row=2,column=1,pady=20,padx=3)
+        self.rpi3testpanel.grid_propagate(False)
+        #testo = tk.Label(self.rpi1testpanel,text="RPI1")
+        #testo.grid(row=0,column=1)
+        self.rpi3Stat = tk.StringVar
+        self.rpi3Stat = "red"
+        self.rpi3status = tk.Frame(self.rpi3testpanel,width=20,height=20,bg=self.rpi3Stat)
+        self.rpi3status.grid(row=0,column=0,padx=2,pady=2)
+        testo3 = tk.Label(self.rpi3testpanel,text="RPI3")
+        testo3.grid(row=0,column=1)
+        self.R3 = tk.Button(self.rpi3testpanel,text="Record",height=1,font=("Arial",8)) 
+        self.R3.grid(row=1,column=1,padx=2,pady=2)
+        self.S3 = tk.Button(self.rpi3testpanel,text="Status",height=1,font=("Arial",8)) 
+        self.S3.grid(row=1,column=2,padx=2,pady=2)
+        self.Check3 = tk.Button(self.rpi3testpanel,text="Check",height=1,font=("Arial",8)) 
+        self.Check3.grid(row=1,column=3,padx=2,pady=2)
+        TR3 = tk.Label(self.rpi3testpanel,text="Recorded %",font=("Arial",8))
+        TR3.grid(row=2,column=2,padx=2,pady=2)
+        TW3 = tk.Label(self.rpi3testpanel,text="Written %",font=("Arial",8))
+        TW3.grid(row=2,column=3,padx=2,pady=2) 
+
+
+        ##RPI 4
+        self.rpi4testpanel = tk.Frame(self.right2_panel,width=194,height=80)
+        self.rpi4testpanel.grid(row=3,column=1,pady=20,padx=3)
+        self.rpi4testpanel.grid_propagate(False)
+        #testo = tk.Label(self.rpi1testpanel,text="RPI1")
+        #testo.grid(row=0,column=1)
+        self.rpi4Stat = tk.StringVar
+        self.rpi4Stat = "red"
+        self.rpi4status = tk.Frame(self.rpi4testpanel,width=20,height=20,bg=self.rpi4Stat)
+        self.rpi4status.grid(row=0,column=0,padx=2,pady=2)
+        testo4 = tk.Label(self.rpi4testpanel,text="RPI4")
+        testo4.grid(row=0,column=1)
+        self.R4 = tk.Button(self.rpi4testpanel,text="Record",height=1,font=("Arial",8)) 
+        self.R4.grid(row=1,column=1,padx=2,pady=2)
+        self.S4 = tk.Button(self.rpi4testpanel,text="Status",height=1,font=("Arial",8)) 
+        self.S4.grid(row=1,column=2,padx=2,pady=2)
+        self.Check4 = tk.Button(self.rpi4testpanel,text="Check",height=1,font=("Arial",8)) 
+        self.Check4.grid(row=1,column=3,padx=2,pady=2)
+        TR4 = tk.Label(self.rpi4testpanel,text="Recorded %",font=("Arial",8))
+        TR4.grid(row=2,column=2,padx=2,pady=2)
+        TW4 = tk.Label(self.rpi4testpanel,text="Written %",font=("Arial",8))
+        TW4.grid(row=2,column=3,padx=2,pady=2) 
+
+        #COM
+        self.COMtestpanel = tk.Frame(self.right2_panel,width=194,height=80)
+        self.COMtestpanel.grid(row=4,column=1,pady=20,padx=3)
+        self.COMtestpanel.grid_propagate(False)
+        #testo = tk.Label(self.rpi1testpanel,text="RPI1")
+        #testo.grid(row=0,column=1)
+        self.COMStat = tk.StringVar
+        self.COMStat = "red"
+        self.COMstatus = tk.Frame(self.COMtestpanel,width=20,height=20,bg=self.COMStat)
+        self.COMstatus.grid(row=0,column=0,padx=2,pady=2)
+        testoCOM = tk.Label(self.COMtestpanel,text="Motor Controller")
+        testoCOM.grid(row=0,column=1)
+        self.CheckCOM = tk.Button(self.COMtestpanel,text="Check",height=1,font=("Arial",8)) 
+        self.CheckCOM.grid(row=1,column=3,padx=2,pady=2)
+
+
 
         #Button containment frame
 
@@ -72,9 +193,18 @@ class TCPClientApp:
         self.actions_panel.grid(column=1,row=0)
         self.actions_panel.grid_propagate(False)
 
-        self.important_panel = tk.Frame(self.right_button_panel,width=150,height=130,bg="red")
+        self.important_panel = tk.Frame(self.right_button_panel,width=150,height=130)
         self.important_panel.grid(column=2,row=0)
-        self.important_panel.pack_propagate(False)
+        self.important_panel.grid_propagate(False)
+
+        self.autoheater = tk.Checkbutton(self.important_panel,text="Auto Heating")
+        self.autoheater.grid(row=0,column=0,padx=2,pady=2)
+
+        self.saveimgs = tk.Checkbutton(self.important_panel,text="Save images", command=self.toggleCamSaves)
+        self.saveimgs.grid(row=1,column=0,padx=2,pady=2)
+
+        self.savetelem = tk.Checkbutton(self.important_panel,text="Save Telem",command=self.toggleOutputTelemetry)
+        self.savetelem.grid(row=2,column=0,padx=2,pady=2)
 
 
         self.add_logo(self.left_button_panel)
@@ -102,8 +232,8 @@ class TCPClientApp:
         self.imageButton = tk.Button(self.left_button_panel, text="Camera currently off", height=1,font=("Arial",8),command=self.toggleCamera, bg='red', fg='white', state=tk.DISABLED)
         self.imageButton.grid(row=2,column=1)
 
-        self.outputTelemetryButton = tk.Button(self.left_button_panel, text="Telemetry output currently off", height=1,font=("Arial",8),command=self.toggleOutputTelemetry, bg='red', fg='white', state=tk.DISABLED)
-        self.outputTelemetryButton.grid(row=3,column=0)
+        #self.outputTelemetryButton = tk.Button(self.left_button_panel, text="Telemetry output currently off", height=1,font=("Arial",8),command=self.toggleOutputTelemetry, bg='red', fg='white', state=tk.DISABLED)
+        #self.outputTelemetryButton.grid(row=3,column=0)
 
         # Action buttons
         self.H1Button = tk.Button(self.actions_panel,text="Heater 1",font=("Arial",7),  command=self.actuateH1 ,state=tk.DISABLED)
@@ -136,6 +266,8 @@ class TCPClientApp:
         self.C3Button.grid(column=2,row=2,padx=2,pady=4)
         self.C4Button = tk.Button(self.actions_panel,text="C4 EN",font=("Arial",7),  command=self.actuateC4 ,state=tk.DISABLED)
         self.C4Button.grid(column=3,row=2,padx=2,pady=4)
+        self.PisEN = tk.Checkbutton(self.actions_panel,command=self.togglePisButtons)
+        self.PisEN.grid(column=4,row=2,padx=2,pady=4)
 
         self.timestamp = tk.StringVar()
         self.timestamp.set('timestamp')
@@ -161,7 +293,10 @@ class TCPClientApp:
         self.master.destroy()
 
     ###### making it look nice ######
-
+    def HealthC1(self):
+            #Send command
+            #Receive information
+        messagebox.showinfo("CHECK RESULTS","SD OK")
     def add_logo(self, frame):
         original_image = Image.open('logo.png')
         resized_image = original_image.resize((150, 45), Image.Resampling.LANCZOS)
@@ -196,16 +331,13 @@ class TCPClientApp:
         self.H4Button.configure(state=tk.NORMAL)
         self.H5Button.configure(state=tk.NORMAL)
         self.H6Button.configure(state=tk.NORMAL)
-        self.C1Button.configure(state=tk.NORMAL)
-        self.C2Button.configure(state=tk.NORMAL)
-        self.C3Button.configure(state=tk.NORMAL)
-        self.C4Button.configure(state=tk.NORMAL)
+
 
         # Update server request buttons
         self.telemetryButton.configure(state=tk.NORMAL)
         self.imageButton.configure(state=tk.NORMAL)
         # Update output buttons
-        self.outputTelemetryButton.configure(state=tk.NORMAL)
+        #self.outputTelemetryButton.configure(state=tk.NORMAL)
         # Print connection status
         print("TCP client running...")
         print("Connecting to server at IP: ", CommonData.server_name, " PORT: ", CommonData.server_TCP_port)
@@ -219,7 +351,7 @@ class TCPClientApp:
 
         # Update server request buttons
         self.toggleOutputTelemetry(False)
-        self.outputTelemetryButton.configure(state=tk.DISABLED)
+        #self.outputTelemetryButton.configure(state=tk.DISABLED)
         self.toggleTelem(False)
         self.telemetryButton.configure(state=tk.DISABLED)
         self.toggleCamera(False)
@@ -231,10 +363,7 @@ class TCPClientApp:
         self.H4Button.configure(state=tk.DISABLED)
         self.H5Button.configure(state=tk.DISABLED)
         self.H6Button.configure(state=tk.DISABLED)
-        self.C1Button.configure(state=tk.DISABLED)
-        self.C2Button.configure(state=tk.DISABLED)
-        self.C3Button.configure(state=tk.DISABLED)
-        self.C4Button.configure(state=tk.DISABLED)
+
 
         # Close the TCP connection
         PortCommunication.close_TCP()
@@ -271,21 +400,31 @@ class TCPClientApp:
         '''
 
         try:
-            WatchPing(self.pingServer).start()
+            #WatchPing(self.pingServer).start()
             WatchTCP().start()
             WatchTelem(self.dataFormat,
                         self.tableLabels).start()
             WatchCamera(self.right_pic_panel,
                         self.panel,
-                        self.timestamp).start()
+                        self.timestamp,self.SaveCam).start()
         except Exception as e:
             print(f'An exception occurred in the live updates: {e}')
 
     ###### toggles ######
 
+    def toggleCamSaves(self):
+        
+        if self.SaveCam.get() == 1:
+            self.SaveCam.set(0)
+            print(self.SaveCam)
+        elif self.SaveCam.get() == 0:
+            self.SaveCam.set(1)
+            print(self.SaveCam)
+        else:
+            pass
+
+
     def toggleActionButtons(self):
-        print("HOLA")
-        print(self.ActionButtons)
         if self.ActionButtons == 1:
             self.BW1Button.config(state=tk.DISABLED)
             self.BW2Button.config(state=tk.DISABLED)
@@ -296,6 +435,22 @@ class TCPClientApp:
             self.BW2Button.config(state=tk.NORMAL)
             self.MOTButton.config(state=tk.NORMAL)
             self.ActionButtons = 1
+        else:
+            pass
+    
+    def togglePisButtons(self):
+        if self.PisButtons == 1:
+            self.C1Button.config(state=tk.DISABLED)
+            self.C2Button.config(state=tk.DISABLED)
+            self.C3Button.config(state=tk.DISABLED)
+            self.C4Button.config(state=tk.DISABLED)
+            self.PisButtons = 0
+        elif self.PisButtons == 0:
+            self.C1Button.config(state=tk.NORMAL)
+            self.C2Button.config(state=tk.NORMAL)
+            self.C3Button.config(state=tk.NORMAL)
+            self.C4Button.config(state=tk.NORMAL)
+            self.PisButtons = 1
         else:
             pass
 
@@ -354,17 +509,17 @@ class TCPClientApp:
         Switches the output telemetry on or off
         '''
 
-        name = "Telemetry output"
+        #name = "Telemetry output"
         if flag: # nominal behaviour
             if CommonData.outputTelemetry:
                 CommonData.outputTelemetry = False
-                self.__toggleOff(self.outputTelemetryButton, name)
+                #self.__toggleOff(self.outputTelemetryButton, name)
             else:
                 CommonData.outputTelemetry = True
-                self.__toggleOn(self.outputTelemetryButton, name)
+                #self.__toggleOn(self.outputTelemetryButton, name)
         else: # forced shut down
             CommonData.outputTelemetry = False
-            self.__toggleOff(self.outputTelemetryButton, name)
+            #self.__toggleOff(self.outputTelemetryButton, name)
 
     ###### actuators ######
     def actuateH1(self):

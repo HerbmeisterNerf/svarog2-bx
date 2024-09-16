@@ -41,49 +41,80 @@ class MessagePack:
          self.deployment_mode_flag = int(message[305:308], 2)
          self.auto_mode_flag = int(message[308:311], 2)
          self.motor_fault = int(message[311:314],2)
+         self.rpi_IO_1 = 0
+         self.rpi_IO_2 = 0
+         self.rpi_IO_3 = 0
+         self.rpi_IO_4 = 0
+         self.motor_serial = 0
+         self.C1 = 0
+         self.C2 = 0
+         self.C3 = 0
+         self.C4 = 0
+         self.SD1 = 0
+         self.SD2 = 0
+         self.SD3 = 0
+         self.SD4 = 0
 
     def generateString(self):
         bits = [
-           "package_count=",f'{self.package_count}',
-           ",timestamp=",f'{self.timestamp}',
-           ",voltage_28V=",f'{self.voltage_28V}',
-           ",voltage_5V=",f'{self.voltage_5V}',
-            ",voltage_12V=",f'{self.voltage_12V}',
-            ",voltage_24V=",f'{self.voltage_24V}',
-            ",current_5V=",f'{self.current_5V}',
-            ",current_12V=",f'{self.current_12V}',
-            ",current_24V=",f'{self.current_24V}',
-            ",ebox_temp=",f'{self.ebox_temp}',
-            ",pressure=",f'{self.pressure}',
-            ",imu_mag_x=",f'{self.imu_mag_x}',
-            ",imu_mag_y=",f'{self.imu_mag_y}',
-            ",imu_mag_z=",f'{self.imu_mag_z}',
-            ",imu_acc_x=",f'{self.imu_acc_x}',
-            ",imu_acc_y=",f'{self.imu_acc_y}',
-            ",imu_acc_z=",f'{self.imu_acc_z}',
-            ",heater_1_status=",f'{self.heater_1_status}',
-            ",heater_2_status=",f'{self.heater_2_status}',
-            ",heater_3_status=",f'{self.heater_3_status}',
-            ",heater_4_status=",f'{self.heater_4_status}',
-            ",heater_5_status=",f'{self.heater_5_status}',
-            ",heater_6_status=",f'{self.heater_6_status}',
-            ",temp_1_status=",f'{self.temp_1_status}',
-            ",temp_2_status=",f'{self.temp_2_status}',
-            ",temp_3_status=",f'{self.temp_3_status}',
-            ",temp_4_status=",f'{self.temp_4_status}',
-            ",temp_5_status=",f'{self.temp_5_status}',
-            ",temp_6_status=",f'{self.temp_6_status}',
-            ",burn_wire_1_status=",f'{self.burn_wire_1_status}',
-            ",burn_wire_2_status=",f'{self.burn_wire_2_status}',
-            ",current_limiting_status=",f'{self.current_limiting_status}',
-            ",rpi_1_status=",f'{self.rpi_1_status}',
-            ",rpi_2_status=",f'{self.rpi_2_status}',
-            ",rpi_3_status=",f'{self.rpi_3_status}',
-            ",rpi_4_status=",f'{self.rpi_4_status}',
-            ",motor_speed=",f'{self.motor_speed}',
-            ",recording_mode_flag=",f'{self.recording_mode_flag}',
-            ",deployment_mode_flag=",f'{self.deployment_mode_flag}',
-            ",auto_mode_flag=",f'{self.auto_mode_flag}',
-            ",motor_fault=",f'{self.motor_fault}',
+           str(self.package_count),
+           str(self.timestamp),
+           str(self.voltage_28V),
+           str(self.voltage_5V),
+            str(self.voltage_12V),
+            str(self.voltage_24V),
+            str(self.current_5V),
+            str(self.current_12V),
+            str(self.current_24V),
+            str(self.ebox_temp),
+            str(self.pressure),
+            str(self.imu_mag_x),
+            str(self.imu_mag_y),
+            str(self.imu_mag_z),
+            str(self.imu_acc_x),
+            str(self.imu_acc_y),
+            str(self.imu_acc_z),
+            str(self.heater_1_status),
+            str(self.heater_2_status),
+            str(self.heater_3_status),
+            str(self.heater_4_status),
+            str(self.heater_5_status),
+            str(self.heater_6_status),
+            str(self.temp_1_status),
+            str(self.temp_2_status),
+            str(self.temp_3_status),
+            str(self.temp_4_status),
+            str(self.temp_5_status),
+            str(self.temp_6_status),
+            str(self.burn_wire_1_status),
+            str(self.burn_wire_2_status),
+            str(self.current_limiting_status),
+            str(self.rpi_IO_1),
+            str(self.rpi_IO_2),
+            str(self.rpi_IO_3),
+            str(self.rpi_IO_4),
+            str(self.motor_speed),
+            str(self.recording_mode_flag),
+            str(self.deployment_mode_flag),
+            str(self.auto_mode_flag),
+            str(self.motor_fault),
+            str(self.rpi_1_status),
+            str(self.rpi_2_status),
+            str(self.rpi_3_status),
+            str(self.rpi_4_status)
         ]
-        return ''.join(bits)
+        return ','.join(bits)
+
+    def HealthCheckupString(self):
+        bits = [
+            str(self.motor_serial),
+            str(self.C1),
+            str(self.C2),
+            str(self.C3),
+            str(self.C4),
+            str(self.SD1),
+            str(self.SD2),
+            str(self.SD3),
+            str(self.SD4)
+        ]
+        return ','.join(bits)

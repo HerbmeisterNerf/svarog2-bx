@@ -24,6 +24,8 @@ class CommonData:
 
     commandSocketStatus: bool = False
 
+    send_image: bool = False
+
     # addresses
 
     commandAdd: str = ""
