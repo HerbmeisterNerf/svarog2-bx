@@ -1,3 +1,4 @@
+# copied from radxa website
 #!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
 
