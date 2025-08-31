@@ -1,3 +1,4 @@
+# tests the spi interface to both adcs 
 import mraa
 import time
 
@@ -50,3 +51,4 @@ if __name__ == '__main__':
         pdu_adc.close()
 
         thermal_adc.close()
+
