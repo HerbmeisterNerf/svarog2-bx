@@ -28,7 +28,7 @@ class SPI_ADC128S052:
         self.cs = None
 
 if __name__ == '__main__':
-    # Replace these with your actual CS GPIO numbers
+
     PDU_SPI_CS_PIN = 150
     THERMAL_SPI_CS_PIN = 153
 
@@ -48,4 +48,5 @@ if __name__ == '__main__':
         print("Exiting...")
     finally:
         pdu_adc.close()
+
         thermal_adc.close()
