@@ -31,15 +31,39 @@ class UARTInterface:
         self.uart = None
 
 if __name__ == '__main__':
-    uart = UARTInterface(uart_id=1, baudrate=115200, databits=8, stopbits=1)
+    uart = UARTInterface(uart_id=2, baudrate=115200, databits=8, stopbits=1)
+    # NOTE: follow https://wiki.radxa.com/Rock3/dev/uart to use UART2 as a normal serial port and not a debug port
+
+    ############ try:
+    ############     while True:
+    ############         uart.send("Hello Arduino!\n")
+    ############         response = uart.receive()
+    ############         if response:
+    ############             print("Received:", response)
+    ############         time.sleep(1)
+    ############ except KeyboardInterrupt:
+    ############     print("Exiting...")
+    ############ finally:
+    ############     uart.close()
+
+    # Motor controller test
+    # Commands:
+    # SS_[BOARD_NUM]_[SPEED] - set speed
+    # GS_[BOARD_NUM]         - get speed
+    # SM_[BOARD_NUM]_[MODE]  - set mode (0=off, 1=on)
+    # CE                     - check errors
+    # SP_[BOARD_NUM]_[PARAM]=[VAL] - set parameter (see https://www.infineon.com/assets/row/public/documents/10/44/infineon-bldc-shield-usermanual-en.pdf#_OPENTOPIC_TOC_PROCESSING_d131e2703)
+    # HI                     - debug
     try:
-        while True:
-            uart.send("Hello Arduino!\n")
-            response = uart.receive()
-            if response:
-                print("Received:", response)
-            time.sleep(1)
-    except KeyboardInterrupt:
-        print("Exiting...")
+        uart.send("HI\n")
+        response = uart.receive()
+        if response:
+            print("Received:", response)
+            if "Arduino says hello :)" in response:
+                print("HI TEST SUCCESS")
+        
+        # uart.send("SM_0_0\n")
+        # time.sleep(10)
+        # uart.send("SM_0_1\n")
     finally:
         uart.close()
