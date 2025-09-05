@@ -1,5 +1,33 @@
 import mraa
 import time
+import numpy as np
+import threading
+
+PERIPH_BINDINGS = {
+    "BW_1" : 0,
+    "BW_2" : 1,
+    "BW_3" : 2,
+    "BW_4" : 3,
+    "HEAT_1" : 4,
+    "HEAT_2" : 5,
+    "HEAT_3" : 6,
+    "HEAT_4" : 7
+}
+
+assert set(PERIPH_BINDINGS.values()) == set(range(8)) # all ports must have a binding. peripheral doesn't actually have to exist but they need to be bound.
+
+
+# thread shared variable to submit requests for enable/disable of peripherals
+peripheral_requests = {x : 0 for x in PERIPH_BINDINGS.keys()}
+peripheral_requests_reset = False
+peripheral_requests_highZ = False
+peripheral_requests_lock = threading.Lock() # use this lock for the 3 variables above
+
+
+DATA_WAIT_TIMEOUT = 5   
+
+PDU_SPI_CS_PIN = 150
+THERMAL_SPI_CS_PIN = 153
 
 I2C_SDA = 3
 I2C_SCL = 5
