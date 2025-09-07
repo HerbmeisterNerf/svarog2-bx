@@ -22,6 +22,7 @@ class SPI_ADC128S052:
         self.cs.write(1)  # Deselect ADC
         # first 3 cycles are null, next 12 bits are data
         value = ((rx[0] & 0x0F) << 8) | rx[1]
+        voltage = (value * 5) / 4096  # Assuming Vref = 5V, convert to voltage
         return value
 
     def close(self):
@@ -42,7 +43,7 @@ if __name__ == '__main__':
                 # Read from both ADCs, all input channels and print values
                 val1 = pdu_adc.read_channel(ch)
                 val2 = thermal_adc.read_channel(ch)
-                print(f"PDI_ADC Ch{ch}: {val1:04X}  THERMAL_ADC Ch{ch}: {val2:04X}")
+                print(f"PDI_ADC Ch{ch}: {val1: .4f} V  THERMAL_ADC Ch{ch}: {val2: .4f} V")
             time.sleep(0.1)
     except KeyboardInterrupt:
         # exit on Ctrl+C
@@ -51,4 +52,5 @@ if __name__ == '__main__':
         pdu_adc.close()
 
         thermal_adc.close()
+
 
