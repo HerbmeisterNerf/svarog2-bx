@@ -23,7 +23,8 @@ class SPI_ADC128S052:
         rx = self.spi.write(tx)
         self.cs.write(1)
         value = ((rx[0] & 0x0F) << 8) | rx[1]
-        return value
+        voltage = (value * 5) / 4096  # Assuming Vref = 5V, convert to voltage
+        return voltage
 
     def close(self):
         self.spi = None
@@ -48,4 +49,5 @@ if __name__ == "__main__":
     def close_adcs():
         """Call this at shutdown to clean up."""
         pdu_adc.close()
+
         thermal_adc.close()
