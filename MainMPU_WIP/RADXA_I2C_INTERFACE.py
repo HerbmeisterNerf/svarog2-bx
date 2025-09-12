@@ -3,7 +3,7 @@ import time
 
 import declarations
 
-class SensorInterface:
+class I2CInterface:
     def __init__(self, i2c_bus=1): #bus 1 for ports 3 and 5
         """Initialize I2C bus and sensors."""
         self.i2c_bus = mraa.I2c(i2c_bus)
@@ -88,7 +88,7 @@ class SensorInterface:
         
         sensitivity = 0.512 #1/(32000mg/2^14bits), so this is in bits per m-g
 
-        return [x_acc/sensitivity,y_acc/sensitivity,z_acc/sensitivity]
+        return x_acc/sensitivity,y_acc/sensitivity,z_acc/sensitivity
 
     def read_magnetometer_data(self):
         """Read raw data from the magnetometer."""
@@ -109,10 +109,10 @@ class SensorInterface:
         
         sensitivity = 0.15
 
-        return [x_mag/sensitivity,y_mag/sensitivity,z_mag/sensitivity] #The output is in uT
+        return x_mag/sensitivity,y_mag/sensitivity,z_mag/sensitivity #The output is in uT
 
 if __name__ == "__main__":
-    sensor_interface = SensorInterface()
+    sensor_interface = I2CInterface()
 
     # Read sensor data
     pressure = sensor_interface.read_pressure()
