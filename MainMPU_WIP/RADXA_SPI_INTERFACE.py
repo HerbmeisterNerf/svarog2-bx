@@ -5,9 +5,10 @@
 # Can add further error handling as needed...
 import mraa
 import time
+import LMT87_LookUpTable
 
 class SPI_ADC128S052:
-    def __init__(self, spi_index, cs_pin, freq=400000):
+    def __init__(self, spi_index, cs_pin, freq=3200000):
         self.spi = mraa.Spi(spi_index)
         self.cs = mraa.Gpio(cs_pin)
         self.cs.dir(mraa.DIR_OUT)
@@ -44,7 +45,7 @@ if __name__ == "__main__":
 
     def poll_thermal_adc():
         """Poll all channels of the Thermal ADC and return a list of values."""
-        return [thermal_adc.read_channel(ch) for ch in range(8)]
+        return [LMT87_LookUpTable.lookup_closest(1000*thermal_adc.read_channel(ch)) for ch in range(8)]
 
     def close_adcs():
         """Call this at shutdown to clean up."""
