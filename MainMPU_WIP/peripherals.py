@@ -80,3 +80,25 @@ class PeripheralDriver(threading.Thread):
 
 peripherals = PeripheralDriver()
 # call peripheral run
+
+# test
+if __name__ == "__main__":
+	while True:
+		print("send 3ON = turn peripheral 3 on.")
+
+		x = input()
+
+		if("DOOR_OPEN" in x):
+			peripherals.write_peripheral(0,1)
+			peripherals.write_peripheral(1,1)
+			peripherals.write_peripheral(6,1)
+			peripherals.write_peripheral(7,1)
+			peripherals.send_output()
+			
+			
+
+		p = int(x[0])
+		on = 1 if x[1:2] == "ON" else 0
+		peripherals.write_peripheral(p,on)
+
+

@@ -2,6 +2,7 @@
 # SendTelem - runs on a thread and has awaits with timeouts to gather data from each datasource
 from declarations import *
 from RADXA_SPI_INTERFACE import SPI_ADC128S052
+from RADXA_I2C_INTERFACE import SensorInterface
 import asyncio
 
 class SendTelem(threading.Thread):
@@ -17,7 +18,7 @@ class SendTelem(threading.Thread):
         self.thermal_adc_readings = [0]*8
 
         # Create I2C objects 
-        # ...
+        self.sensor_interface = SensorInterface()
 
         # GPIO general
         self.gpio_MOTCON_EFUSE_FLT = gpio_MOTCON_EFUSE_FLT   
@@ -32,8 +33,10 @@ class SendTelem(threading.Thread):
 
         self.error_report = "" # string that accumulates errors to send back to base station for each telem set sent
     
+    # todo: saving data to files
     def run(self):
-        asyncio.run(self.send_telem_loop()) # runs as coroutine
+        while True:
+            asyncio.run(self.send_telem_loop()) # runs as coroutine
 
     async def send_telem_loop(self):
         # 1) async fetch all data, with a timeout

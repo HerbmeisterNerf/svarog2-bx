@@ -7,7 +7,7 @@ import mraa
 import time
 
 class SPI_ADC128S052:
-    def __init__(self, spi_index, cs_pin, freq=4000000):
+    def __init__(self, spi_index, cs_pin, freq=400000):
         self.spi = mraa.Spi(spi_index)
         self.cs = mraa.Gpio(cs_pin)
         self.cs.dir(mraa.DIR_OUT)
@@ -51,3 +51,8 @@ if __name__ == "__main__":
         pdu_adc.close()
 
         thermal_adc.close()
+
+    while True:
+        time.sleep(1)
+        print(f"PDU ADC: {poll_pdu_adc()}")
+        # print(f"TEMP ADC: {poll_pdu_adc()}")
