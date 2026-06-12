@@ -2,51 +2,30 @@ from queue import Queue
 from queue import Empty as QueueEmptyException, Full as QueueFullException
 from declarations import *
 
-# to paste into debut code for ebox:
-# controllers = [TempController("HEAT_1", open_loop=True, high_index = 0), TempController("HEAT_2", open_loop=True, high_index = 20), TempController("HEAT_3", open_loop=True, high_index = 50), TempController("HEAT_4", open_loop=True, high_index = 70), TempController("HEAT_5", open_loop=True, high_index=90)]
-
 class TempController(threading.Thread):
     """This a very basic PI controller with difference eqn:
         y = ax[n] + bx[n-1] + cn[n-2] etc."""
 
-    def __init__(self, peripheral_name: str, coeffs = [0.2]*5, open_loop=False, high_index = 0, cycle_length=100):
+    def __init__(self, peripheral_name: str, coeffs = [0.2]*5):
         """driver name of peripheral in peripheral_requests """
         super().__init__()
         self.coeffs = np.array(coeffs)
         self.function_size = len(self.coeffs)
         self.input_queue = Queue(maxsize=self.function_size*2)
-        self.setpoint = 0  # degrees C
+        self.setpoint = 30  # degrees C?
         self.setpoint_lock = threading.Lock()
         self.g = np.zeros(self.function_size)
         self.peripheral_name = peripheral_name
         self.continue_run = True
         self.active = True
-        self.open_loop = open_loop
-        self.high_index = high_index
-        self.cycle_length = cycle_length
 
     def run(self):
-        print(f"Temp controller {self.peripheral_name} started")
-        current_loop = 0
+        print(f"Tempcontroller {self.peripheral_name} started")
         while self.continue_run:
             if not self.active: continue
             time.sleep(1)
             r = 0
-            if self.open_loop:
-                # if open loop actuate heaters for 0.1 seconds every 10 seconds
-                if current_loop == self.cycle_length:
-                    current_loop = 0      
-                elif current_loop == self.high_index:
-                    with peripheral_requests_lock:
-                            peripheral_requests[self.peripheral_name] = 1
-                            print(f"Turned on {self.peripheral_name}")     
-                    current_loop += 1   
-                else:
-                    with peripheral_requests_lock:
-                        peripheral_requests[self.peripheral_name] = 0
-                    current_loop += 1
-
-            elif not self.input_queue.empty():
+            if not self.input_queue.empty():
                 for i in range(self.function_size-1, -1, -1):
                     try:
                         r += self.coeffs[i]*self.input_queue.get()
@@ -62,8 +41,7 @@ class TempController(threading.Thread):
                             peripheral_requests[self.peripheral_name] = 0
                             print(f"Controller requests {self.peripheral_name} OFF")
             else:
-                # print(f"Controller {self.peripheral_name} has no data!")       
-                pass
+                print(f"Controller {self.peripheral_name} has no data!")       
     def stop_t(self):
         self.continue_run = False
 
@@ -75,7 +53,6 @@ class TempController(threading.Thread):
             self.setpoint = sp
 
     def add_datapoint(self,x):
-        if self.open_loop: return
         if self.input_queue.full():
             self.input_queue.get()
         try:

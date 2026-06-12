@@ -26,4 +26,4 @@ class WatchPing(threading.Thread):
                 r.start()
                 r.join()
             except Exception as e:
-                print(f'An exception occurred in the WatchTCP: {e}')
+                print(f'An exception occurred in the WatchPing: {e}')

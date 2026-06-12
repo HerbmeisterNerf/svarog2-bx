@@ -29,9 +29,9 @@ class SendTelem(threading.Thread):
     def run(self):
         try:
             self.packet = self.updateTelem(self.packet)
-            lol = self.packet.generateString()
-            #print(lol)
-            self.socket.sendto(lol.encode('utf-8'), self.UDP_info)
+            packet_string = self.packet.generateString()
+            #print(packet_string)
+            self.socket.sendto(packet_string.encode('utf-8'), self.UDP_info)
             print("Telemetry sent")
         except Exception as e:
             print(f'An exception occurred in SendTelem: {e}')

@@ -1,3 +1,15 @@
+# Python
 */__pycache__/
+*.pyc
+
+# Captured test data (do not commit)
+Cam*_images/
+Cam*_videos/
+*.avi
+assets/*.jpg
+assets/*.mp4
+
+# Data outputs
 receivedimage.jpg
 *.csv
+telemetry_output/
