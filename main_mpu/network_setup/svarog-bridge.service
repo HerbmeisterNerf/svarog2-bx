@@ -1,0 +1,16 @@
+[Unit]
+Description=Svarog EBOX network bridge (eth0 <-> eth1/fiber)
+Documentation=https://github.com/HerbmeisterNerf/svarog2-bx
+After=network-pre.target
+Before=network.target
+Wants=network-pre.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/svarog-bridge-setup.sh
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
