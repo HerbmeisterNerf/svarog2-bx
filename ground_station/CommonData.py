@@ -1,58 +1,51 @@
-############ standard libraries ############
 from dataclasses import dataclass
+import queue
 import socket
 
-############ class ############
+
 @dataclass
 class CommonData:
-    '''
-    This class contains the shared data that is used by all the classes in the project
-    '''
+    '''Shared state used by all ground station classes.'''
 
-    # sockets
+    # EBOX socket
+    client_TCP_socket: socket.socket = None
+    telemetryParameters: int = 35
 
-    client_TCP_socket: socket.socket
+    # CubeSat socket
+    client_TCP_socket_cs: socket.socket = None
 
-    telemetryParameters: int
-
-    # UDP ports
-
+    # UDP ports (legacy)
     camera_port_UDP: int = 15000
-
     telemetry_port_UDP: int = 11000
-
     probe_port: int = 50007
 
-    # TCP ports and server name
+    # EBOX TCP
+    server_TCP_port: int = 8005
+    server_name: str = "192.168.1.10"
 
-    server_TCP_port: int = 12000
+    # CubeSat TCP
+    server_TCP_port_cs: int = 8005
+    server_name_cs: str = "192.168.1.20"
 
-    server_name: str = "0.0.0.0"  # TODO: set to Radxa IP before deployment (was 155.198.40.229)
-
-    # Flags
-
+    # EBOX flags
     TCPSTATUS: bool = False
-
     runTelemetry: bool = False
-
     runCamera: bool = False
 
-    firstCSV: bool = True
+    # CubeSat flags
+    TCPSTATUS_cs: bool = False
+    runTelemetry_cs: bool = False
 
     # Output flags
-
+    firstCSV: bool = True
     outputTelemetry: bool = False
-
-    # Directories
-
     outputTelemetryDir: str = "telemetry_output/"
 
-    # timers
-
-    TelemFreqVal: float = 1.2
-
+    # Timers / rates
+    TelemFreqVal: float = 5.0
     ImgFreqVal: float = 10
-
-    # data rates
-
     imgbaudrate: int = 32
+
+    # Telemetry queues (class-level, shared singletons)
+    ebox_telem_queue = queue.Queue()
+    cs_telem_queue = queue.Queue()

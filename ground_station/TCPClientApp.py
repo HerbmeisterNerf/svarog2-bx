@@ -1,17 +1,23 @@
 ############ standard libraries ############
 import tkinter as tk
-from PIL import Image, ImageTk
-import pandas as pd
 from tkinter import messagebox
 from tkinter import ttk
+import pandas as pd
+try:
+    from PIL import Image, ImageTk
+    _PIL_OK = True
+except ImportError:
+    _PIL_OK = False
 
 ############ custom libraries ############
 from CommonData import CommonData
 from PortCommunication import PortCommunication
+from TCPTelemReader import TCPTelemReader
 from WatchTCP import WatchTCP
 from WatchTelem import WatchTelem
 from WatchCamera import WatchCamera
 from WatchPing import WatchPing
+from CubeSatPanel import CubeSatPanel
 
 ############ class ############
 class TCPClientApp:
@@ -28,8 +34,16 @@ class TCPClientApp:
 
         self.master = master
         self.master.protocol("WM_DELETE_WINDOW",self.exitfunc)
-        master.title("BX34 SVAROG GROUND SEGMENT")
+        master.title("BX36 SVAROG2 GROUND SEGMENT")
         master.configure(bg='black')
+
+        # Notebook: EBOX tab (existing) + CubeSat tab (new)
+        self.notebook = ttk.Notebook(master)
+        self.notebook.pack(fill=tk.BOTH, expand=True)
+        self.ebox_tab = tk.Frame(self.notebook)
+        self.notebook.add(self.ebox_tab, text='  EBOX  ')
+        self.cubesat_tab = tk.Frame(self.notebook)
+        self.notebook.add(self.cubesat_tab, text='  CubeSat  ')
         self.TelemFreqVal = tk.DoubleVar()
         self.ImgFreqVal = tk.DoubleVar()
         self.imgbaudrate = tk.DoubleVar()
@@ -44,14 +58,14 @@ class TCPClientApp:
         ###### GUI Elements ######
 
         # Add logo
-        #Main two frames
-        self.left_panel = tk.Frame(master,width=300,height=600)
+        #Main two frames — all parented to ebox_tab
+        self.left_panel = tk.Frame(self.ebox_tab,width=300,height=600)
         self.left_panel.grid(row=0,column=0)
         self.left_panel.grid_propagate(False)
-        self.right_panel = tk.Frame(master,width=600,height=600)
+        self.right_panel = tk.Frame(self.ebox_tab,width=600,height=600)
         self.right_panel.grid(row=0,column=1)
         self.right_panel.grid_propagate(False)
-        self.right2_panel = tk.Frame(master,width=200,height=600)
+        self.right2_panel = tk.Frame(self.ebox_tab,width=200,height=600)
         self.right2_panel.grid(row=0,column=2)
         self.right2_panel.grid_propagate(False)
 
@@ -211,6 +225,14 @@ class TCPClientApp:
         self.pingServer = tk.Label(self.left_button_panel,text="Connection status")
         self.pingServer.grid(row=0,column=1)
 
+        # EBOX IP entry
+        _ip_frame = tk.Frame(self.left_button_panel)
+        _ip_frame.grid(row=0, column=2, sticky="w", padx=4)
+        tk.Label(_ip_frame, text="EBOX IP:", font=("Arial", 8)).pack(side=tk.LEFT)
+        self._ebox_ip_var = tk.StringVar(value=CommonData.server_name)
+        tk.Entry(_ip_frame, textvariable=self._ebox_ip_var, width=14,
+                 font=("Arial", 8)).pack(side=tk.LEFT, padx=2)
+
         self.connect_button = tk.Button(self.left_button_panel, text="Connect to server",height=1,font=("Arial",8), command=self.connect_socket, bg='white', fg='black')
         self.connect_button.grid(row=1,column=0)
 
@@ -285,6 +307,9 @@ class TCPClientApp:
         # Start the thread
         self.start_live_updates()
 
+        # CubeSat tab
+        self.cubesat_panel = CubeSatPanel(self.cubesat_tab)
+
 ############ Methods ############
 
     def exitfunc(self):
@@ -294,30 +319,50 @@ class TCPClientApp:
 
     ###### making it look nice ######
     def HealthC1(self):
-            #Send command
-            #Receive information
         messagebox.showinfo("CHECK RESULTS","SD OK")
-    def add_logo(self, frame):
-        original_image = Image.open('logo.png')
-        resized_image = original_image.resize((150, 45), Image.Resampling.LANCZOS)
-        self.logo = ImageTk.PhotoImage(resized_image)
 
-        self.logo_label = tk.Label(frame, image=self.logo)
-        self.logo_label.grid(column=0,row=0)
+    def add_logo(self, frame):
+        if not _PIL_OK:
+            tk.Label(frame, text="SVAROG2", font=("Arial", 14, "bold")).grid(column=0, row=0)
+            return
+        try:
+            original_image = Image.open('logo.png')
+            resized_image = original_image.resize((150, 45), Image.Resampling.LANCZOS)
+            self.logo = ImageTk.PhotoImage(resized_image)
+            self.logo_label = tk.Label(frame, image=self.logo)
+            self.logo_label.grid(column=0, row=0)
+        except Exception:
+            tk.Label(frame, text="SVAROG2", font=("Arial", 14, "bold")).grid(column=0, row=0)
 
     ###### live images ######
 
     def add_image_camera(self, frame, filename):
-        img = ImageTk.PhotoImage(Image.open(filename).resize((600, 350), Image.Resampling.LANCZOS))
-        self.panel = tk.Label(frame, image=img)
-        self.panel.image = img
-        self.panel.pack()
+        if not _PIL_OK:
+            self.panel = tk.Label(frame, text="[Camera feed]", font=("Arial", 10),
+                                  width=60, height=20, relief=tk.SUNKEN)
+            self.panel.pack()
+            return
+        try:
+            img = ImageTk.PhotoImage(Image.open(filename).resize((600, 350), Image.Resampling.LANCZOS))
+            self.panel = tk.Label(frame, image=img)
+            self.panel.image = img
+            self.panel.pack()
+        except Exception:
+            self.panel = tk.Label(frame, text="[Camera feed]", font=("Arial", 10),
+                                  width=60, height=20, relief=tk.SUNKEN)
+            self.panel.pack()
 
     ###### sockets ######
 
     def connect_socket(self):
         # Set up a TCP connection with the server
-        PortCommunication.open_TCP()
+        CommonData.server_name = self._ebox_ip_var.get().strip()
+        try:
+            PortCommunication.open_TCP()
+        except Exception as e:
+            messagebox.showerror("EBOX Connection Error",
+                                 f"Could not connect to EBOX:\n{e}")
+            return
 
         # Update server connection buttons
         self.connect_button.configure(bg="green",fg="white")
@@ -400,13 +445,16 @@ class TCPClientApp:
         '''
 
         try:
-            #WatchPing(self.pingServer).start()
             WatchTCP().start()
-            WatchTelem(self.dataFormat,
-                        self.tableLabels).start()
-            WatchCamera(self.right_pic_panel,
-                        self.panel,
-                        self.timestamp,self.SaveCam).start()
+            # EBOX TCP telemetry reader — receives push packets from flight computer
+            TCPTelemReader(
+                lambda: CommonData.client_TCP_socket,
+                CommonData.ebox_telem_queue,
+                lambda: CommonData.TCPSTATUS,
+            ).start()
+            WatchTelem(self.dataFormat, self.tableLabels).start()
+            WatchCamera(self.right_pic_panel, self.panel,
+                        self.timestamp, self.SaveCam).start()
         except Exception as e:
             print(f'An exception occurred in the live updates: {e}')
 

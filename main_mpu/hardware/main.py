@@ -50,7 +50,7 @@ if __name__ == "__main__":
                     client, caddr = welcome_socket.accept()
                     print(f"[{NODE_ID}] Ground station connected from {caddr}")
                     with client:
-                        telem = SendTelem(client, temp_controllers=controllers)
+                        telem = SendTelem(client, temp_controllers=controllers, uart_flywheel=uart_flywheel)
                         cmd_rx = CommandReceiver(
                             client,
                             uart_flywheel=uart_flywheel,

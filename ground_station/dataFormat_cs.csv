@@ -1,0 +1,32 @@
+Voltage 28V (V),26,27,29,30
+Voltage 5V (V),4,4.5,5.5,6
+Voltage 12V (V),11,11.5,12.5,13
+Current 5V (mA),0,0,2500,3000
+Current 12V (mA),0,0,1200,1500
+CS Temp (C),-50,-20,30,80
+Pressure (mbar),10,100,150,200
+IMU Mag x,-3,-1,1,3
+IMU Mag y,1,2,8,10
+IMU Mag z,1,2,8,10
+IMU Acc x (g),-3,-1,1,3
+IMU Acc y (g),-3,-1,1,3
+IMU Acc z (g),-3,-1,1,3
+Heater 1 status,0.5,0.5,1.5,1.5
+Heater 2 status,0.5,0.5,1.5,1.5
+Temp 1 (C),-50,-20,30,80
+Temp 2 (C),-50,-20,30,80
+Temp 3 (C),-50,-20,30,80
+Temp 4 (C),-50,-20,30,80
+Temp 5 (C),-50,-20,30,80
+Temp 6 (C),-50,-20,30,80
+BW 1 status,0.5,0.5,1.5,1.5
+BW 2 status,0.5,0.5,1.5,1.5
+BW 3 status,0.5,0.5,1.5,1.5
+BW 4 status,0.5,0.5,1.5,1.5
+BW 5 status,0.5,0.5,1.5,1.5
+Flywheel speed,0,0,850,900
+Flywheel mode,0.5,0.5,1.5,1.5
+Deploy fired,0.5,0.5,0.5,0.5
+Motor fault,0.5,0.5,0.5,0.5
+RZ 1 status,0.5,0.5,1.5,1.5
+RZ 2 status,0.5,0.5,1.5,1.5
