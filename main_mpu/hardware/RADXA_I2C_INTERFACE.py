@@ -1,5 +1,6 @@
 import mraa
 import time
+import threading
 
 import declarations
 
@@ -7,12 +8,13 @@ class I2CInterface:
     def __init__(self, i2c_bus=1): #bus 1 for ports 3 and 5
         """Initialize I2C bus and sensors."""
         self.i2c_bus = mraa.I2c(i2c_bus)
-        
+        self._lock = threading.Lock()  # shared bus — serialize all reads/writes
+
         # Pressure Sensor
         self.lps22hb_addr = 0x5C
         self.LPS_CTRL_REG1 = 0x10
         self.LPS_PRESS_OUT_XL = 0x28
-        
+
         # IMU
         self.mc6470_acc_addr = 0x4C #Assuming A5 pin on GND
         self.XOUT_EX_L = 0x0D
@@ -22,14 +24,14 @@ class I2CInterface:
         self.XOUT_LSB = 0x10
 
         self.MC_CHIP_ID_REG = 0x40 #Needs verification
-        
-        # Set up sensor I2C addresses
+
+        # All three devices share one bus object; lock before switching address
         self.lps22hb = self.i2c_bus
         self.lps22hb.address(self.lps22hb_addr)
-        
+
         self.imu_acc = self.i2c_bus
         self.imu_acc.address(self.mc6470_acc_addr)
-        
+
         self.imu_mag = self.i2c_bus
         self.imu_mag.address(self.mc6470_mag_addr)
         
@@ -52,64 +54,57 @@ class I2CInterface:
 
     def read_pressure(self):
         """Read pressure from the LPS22HB sensor."""
-        self.lps22hb.address(self.lps22hb_addr)
-        data = self.lps22hb.readBytesReg(self.LPS_PRESS_OUT_XL, 3)
-        
-        # Combine the 3 bytes to form the pressure value
+        with self._lock:
+            self.lps22hb.address(self.lps22hb_addr)
+            data = self.lps22hb.readBytesReg(self.LPS_PRESS_OUT_XL, 3)
         raw_press = data[2] << 16 | data[1] << 8 | data[0]
         if raw_press & 0x800000:
-            raw_press -= 1 << 24  # Handle 2's complement
-        
-        pressure_hPa = raw_press / 4096.0
-        return pressure_hPa
+            raw_press -= 1 << 24
+        return raw_press / 4096.0
 
     def read_mc6470_chip_id(self):
         """Read the MC6470 chip ID."""
-        self.imu_acc.address(self.mc6470_acc_addr)
-
-        return self.imu_acc.readReg(self.MC_CHIP_ID_REG)
+        with self._lock:
+            self.imu_acc.address(self.mc6470_acc_addr)
+            return self.imu_acc.readReg(self.MC_CHIP_ID_REG)
 
     def read_accelerometer_data(self):
         """Read raw data from the accelerometer."""
-
-        acc_out = self.lps22hb.readBytesReg(self.XOUT_EX_L, 6) # Reading everything in this variable.
+        with self._lock:
+            self.imu_acc.address(self.mc6470_acc_addr)
+            acc_out = self.imu_acc.readBytesReg(self.XOUT_EX_L, 6)
 
         x_acc = acc_out[1] << 8 | acc_out[0]
         if x_acc & 0x8000:
-            x_acc -= 1 << 16  # Handle 2's complement
-
+            x_acc -= 1 << 16
         y_acc = acc_out[3] << 8 | acc_out[2]
         if y_acc & 0x8000:
             y_acc -= 1 << 16
-
         z_acc = acc_out[5] << 8 | acc_out[4]
         if z_acc & 0x8000:
             z_acc -= 1 << 16
-        
-        sensitivity = 0.512 #1/(32000mg/2^14bits), so this is in bits per m-g
 
-        return x_acc/sensitivity,y_acc/sensitivity,z_acc/sensitivity
+        sensitivity = 0.512  # 1/(32000mg/2^14bits)
+        return x_acc / sensitivity, y_acc / sensitivity, z_acc / sensitivity
 
     def read_magnetometer_data(self):
         """Read raw data from the magnetometer."""
-        
-        mag_out = self.lps22hb.readBytesReg(self.XOUT_LSB, 6) # Reading everything in this variable.
+        with self._lock:
+            self.imu_mag.address(self.mc6470_mag_addr)
+            mag_out = self.imu_mag.readBytesReg(self.XOUT_LSB, 6)
 
         x_mag = mag_out[1] << 8 | mag_out[0]
         if x_mag & 0x8000:
-            x_mag -= 1 << 16  # Handle 2's complement
-
+            x_mag -= 1 << 16
         y_mag = mag_out[3] << 8 | mag_out[2]
         if y_mag & 0x8000:
             y_mag -= 1 << 16
-
         z_mag = mag_out[5] << 8 | mag_out[4]
         if z_mag & 0x8000:
             z_mag -= 1 << 16
-        
-        sensitivity = 0.15
 
-        return x_mag/sensitivity,y_mag/sensitivity,z_mag/sensitivity #The output is in uT
+        sensitivity = 0.15
+        return x_mag / sensitivity, y_mag / sensitivity, z_mag / sensitivity  # uT
 
 if __name__ == "__main__":
     sensor_interface = I2CInterface()

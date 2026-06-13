@@ -1,62 +1,74 @@
 from declarations import *
-from DataSender import *
+from DataSender import SendTelem
 from TempController import TempController
 from peripherals import peripherals
+from CommandReciever import CommandReceiver
+from RADXA_UART_INTERFACE import UARTInterface
 
 import socket
 
-# temp controllers run regardless
-controllers = [] #[TempController("HEAT_1")]
+controllers = []  # e.g. [TempController("HEAT_1")]
 
-def shutdown():
-    """Include all code that must run in the event of a fatal exception or keyboardInterrupt here."""
+
+def make_uarts():
+    """Instantiate one UARTInterface per motor Arduino defined in node_config."""
+    uart_hw_ids = [1, 2]  # UART1 = flywheel/spinning, UART2 = deployment (CubeSat only)
+    return [UARTInterface(uart_id=uart_hw_ids[i]) for i in range(len(UART_MOTOR_IDS))]
+
+
+def shutdown(uarts):
     for controller in controllers:
-        # stop all control loops
         controller.stop_t()
-    print("Closed all controller threads")
-    peripherals.stop_t() # stop peripheral thread
+    peripherals.stop_t()
     peripherals.reset()
-    peripherals.send_output() # manual turn off of all peripherals
-    print("Reset peripherals and killed thread")
+    peripherals.send_output()
+    for u in uarts:
+        u.close()
+    print(f"[{NODE_ID}] Shutdown complete")
 
 
 if __name__ == "__main__":
+    uarts = make_uarts()
+    uart_flywheel = uarts[0] if len(uarts) > 0 else None
+    uart_deployment = uarts[1] if len(uarts) > 1 else None
+
     try:
-        server_port = 8005
         for controller in controllers:
-            print("running controller")
             controller.start()
-        # todo: currently gathers data only if connect, but it should do so either way
         peripherals.start()
-        print("Started peripherals")
+        print(f"[{NODE_ID}] Peripherals started")
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as welcome_socket:
+            welcome_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             welcome_socket.settimeout(DATA_WAIT_TIMEOUT)
-            welcome_socket.bind(('0.0.0.0', server_port))
+            welcome_socket.bind(('0.0.0.0', 8005))
             welcome_socket.listen()
 
             while True:
                 try:
-                    print("Socket listening")
+                    print(f"[{NODE_ID}] Listening on :8005")
                     client, caddr = welcome_socket.accept()
-                    with client:  # Client will be automatically closed
-                        print("Client found!")
-                        telem = SendTelem(client,temp_controllers=controllers)
-                        telem.run()
-                        break
-                        
+                    print(f"[{NODE_ID}] Ground station connected from {caddr}")
+                    with client:
+                        telem = SendTelem(client, temp_controllers=controllers)
+                        cmd_rx = CommandReceiver(
+                            client,
+                            uart_flywheel=uart_flywheel,
+                            uart_deployment=uart_deployment,
+                        )
+                        telem.start()
+                        cmd_rx.start()
+                        telem.join()  # block until client disconnects or telem thread dies
+                    print(f"[{NODE_ID}] Ground station disconnected, waiting for reconnect")
+
                 except socket.timeout:
-                    print("ERROR: Socket operation timed out.")
+                    print(f"[{NODE_ID}] Waiting for connection...")
                 except socket.error as e:
-                    print(f"ERROR: TCP connection failed. Error details: {e}")
+                    print(f"[{NODE_ID}] TCP error: {e}")
                 except KeyboardInterrupt:
-                    print("Closing sockets gracefully")
-                    welcome_socket.close()
                     break
-        while True:
-            time.sleep(10)
-            print("Main thread idling")
+
     except KeyboardInterrupt:
-        print("Attempting graceful shutdown")
+        print(f"[{NODE_ID}] Interrupt received, shutting down")
     finally:
-        shutdown()
+        shutdown(uarts)

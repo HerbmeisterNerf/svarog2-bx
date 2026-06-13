@@ -45,8 +45,8 @@ class PDU_ADC(SPI_ADC128S052):
         ret.append(self.read_channel(2)*12/4.32203)
         ret.append(self.read_channel(3)*9/4.1917)
         ret.append(self.read_channel(4)*28/4.30769)
-        for _i in range(5,8):
-            ret.append(self.read_channel(2)*2)
+        for _i in range(5, 8):
+            ret.append(self.read_channel(_i) * 2)
         return ret
 
 class THERMAL_ADC(SPI_ADC128S052):

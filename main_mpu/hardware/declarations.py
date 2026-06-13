@@ -2,19 +2,9 @@ import mraa
 import time
 import numpy as np
 import threading
+from node_config import NODE_ID, NUM_SECONDARY_MPUS, NUM_BW, NUM_HEATERS, NUM_TEMP_SENSORS, UART_MOTOR_IDS, PERIPH_BINDINGS, HEATER_SENSOR_PAIRS
 
-PERIPH_BINDINGS = {
-    "BW_1" : 0,
-    "BW_2" : 1,
-    "BW_3" : 2,
-    "BW_4" : 3,
-    "HEAT_1" : 4,
-    "HEAT_2" : 5,
-    "HEAT_3" : 6,
-    "HEAT_4" : 7
-}
-
-assert set(PERIPH_BINDINGS.values()) == set(range(8)) # all ports must have a binding. peripheral doesn't actually have to exist but they need to be bound.
+assert set(PERIPH_BINDINGS.values()) == set(range(8))  # all 8 shift register outputs must be bound
 
 
 # thread shared variable to submit requests for enable/disable of peripherals
