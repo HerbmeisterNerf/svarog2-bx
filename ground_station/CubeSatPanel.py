@@ -5,8 +5,13 @@ import pandas as pd
 
 from CommonData import CommonData
 from PortCommunication import PortCommunication
-from TCPTelemReader import TCPTelemReader
 from WatchTelemCubeSat import WatchTelemCubeSat
+from SpacePacketComms import (
+    SpacePacketComms,
+    tc_heater_toggle, tc_bw_pulse,
+    tc_fw_enable, tc_fw_speed,
+    tc_deploy_arm, tc_deploy_fire,
+)
 
 CS_TELEM_COUNT = 32
 
@@ -75,18 +80,18 @@ class CubeSatPanel:
         self._bw_btns = []
         for i in range(1, 6):
             btn = tk.Button(f, text=f"BW {i}", font=("Arial", 7), width=5,
-                            command=lambda n=i: self._send(f"start:B{n}end:"),
+                            command=lambda n=i: SpacePacketComms.send_cs_tc(tc_bw_pulse(n)),
                             state=tk.DISABLED)
             btn.grid(row=0, column=1 + i, padx=2, pady=2)
             self._bw_btns.append(btn)
 
         self._h1_btn = tk.Button(f, text="HEAT 1", font=("Arial", 7), width=6,
-                                  command=lambda: self._send("start:H1end:"),
+                                  command=lambda: SpacePacketComms.send_cs_tc(tc_heater_toggle(1)),
                                   state=tk.DISABLED)
         self._h1_btn.grid(row=0, column=7, padx=4, pady=2)
 
         self._h2_btn = tk.Button(f, text="HEAT 2", font=("Arial", 7), width=6,
-                                  command=lambda: self._send("start:H2end:"),
+                                  command=lambda: SpacePacketComms.send_cs_tc(tc_heater_toggle(2)),
                                   state=tk.DISABLED)
         self._h2_btn.grid(row=0, column=8, padx=2, pady=2)
 
@@ -98,7 +103,7 @@ class CubeSatPanel:
             row=0, column=0, padx=6)
 
         self._fwen_btn = tk.Button(f, text="Enable", font=("Arial", 7),
-                                    command=lambda: self._send("start:FWENend:"),
+                                    command=lambda: SpacePacketComms.send_cs_tc(tc_fw_enable()),
                                     state=tk.DISABLED)
         self._fwen_btn.grid(row=0, column=1, padx=4, pady=2)
 
@@ -111,7 +116,7 @@ class CubeSatPanel:
         self._fw_slider.grid(row=0, column=2, padx=6)
 
         self._fw_stop_btn = tk.Button(f, text="Stop", font=("Arial", 7),
-                                       command=lambda: self._send("start:FW_0end:"),
+                                       command=lambda: SpacePacketComms.send_cs_tc(tc_fw_speed(0)),
                                        state=tk.DISABLED)
         self._fw_stop_btn.grid(row=0, column=3, padx=4)
 
@@ -164,26 +169,19 @@ class CubeSatPanel:
             self._tableLabels_cs.append(val)
 
     def _start_background_threads(self):
-        TCPTelemReader(
-            lambda: CommonData.client_TCP_socket_cs,
-            CommonData.cs_telem_queue,
-            lambda: CommonData.TCPSTATUS_cs,
-        ).start()
-
+        # UDPTelemReader (started by TCPClientApp) feeds cs_telem_queue automatically.
+        # WatchTelemCubeSat consumes it and updates the table labels.
         if self._dataFormat_cs is not None:
             WatchTelemCubeSat(self._dataFormat_cs, self._tableLabels_cs).start()
 
     # --------------------------------------------------------------- actions
 
     def _connect(self):
-        try:
-            CommonData.server_name_cs = self._ip_var.get().strip()
-            CommonData.server_TCP_port_cs = int(self._port_var.get().strip())
-            PortCommunication.open_TCP_cubesat()
-        except Exception as e:
-            messagebox.showerror("CS Connection Error",
-                                 f"Could not connect to CubeSat:\n{e}")
+        ip = self._ip_var.get().strip()
+        if not ip:
+            messagebox.showerror("CS Connection Error", "Enter a CubeSat IP address")
             return
+        PortCommunication.connect_cubesat(ip)
         self._conn_btn.configure(bg="green", fg="white", state=tk.DISABLED)
         self._disc_btn.configure(bg="red", fg="white", state=tk.NORMAL)
         self._status_dot.configure(bg="green")
@@ -193,7 +191,7 @@ class CubeSatPanel:
         CommonData.runTelemetry_cs = False
         self._telem_btn.configure(text="Telem OFF", bg="red", fg="white",
                                    state=tk.DISABLED)
-        PortCommunication.close_TCP_cubesat()
+        PortCommunication.disconnect_cubesat()
         self._conn_btn.configure(bg="white", fg="black", state=tk.NORMAL)
         self._disc_btn.configure(bg="white", fg="black", state=tk.DISABLED)
         self._status_dot.configure(bg="red")
@@ -226,16 +224,9 @@ class CubeSatPanel:
             self._arm_btn.configure(text="ARM", bg="orange")
             self._arm_status.configure(text="SAFE", fg="green")
 
-    def _send(self, cmd):
-        if CommonData.TCPSTATUS_cs and CommonData.client_TCP_socket_cs:
-            try:
-                CommonData.client_TCP_socket_cs.send(cmd.encode())
-            except Exception as e:
-                print(f"CubeSat send error: {e}")
-
     def _on_fw_slider(self, val):
         speed = int(float(val))
-        self._send(f"start:FW_{speed}end:")
+        SpacePacketComms.send_cs_tc(tc_fw_speed(speed))
 
     def _arm_deploy(self):
         if not self._deploy_armed:
@@ -243,7 +234,7 @@ class CubeSatPanel:
             self._arm_btn.configure(text="DISARM", bg="grey")
             self._fire_btn.configure(state=tk.NORMAL)
             self._arm_status.configure(text="ARMED", fg="red")
-            self._send("start:DPARMend:")
+            SpacePacketComms.send_cs_tc(tc_deploy_arm())
         else:
             self._deploy_armed = False
             self._arm_btn.configure(text="ARM", bg="orange")
@@ -257,7 +248,7 @@ class CubeSatPanel:
                 "FIRE DEPLOYMENT MOTOR?\n\nThis cannot be undone.",
                 icon="warning",
             ):
-                self._send("start:DPFIREend:")
+                SpacePacketComms.send_cs_tc(tc_deploy_fire())
                 self._deploy_armed = False
                 self._arm_btn.configure(text="ARM", bg="orange")
                 self._fire_btn.configure(state=tk.DISABLED)

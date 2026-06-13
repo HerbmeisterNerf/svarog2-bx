@@ -21,7 +21,7 @@ class CommonData:
 
     # EBOX TCP
     server_TCP_port: int = 8005
-    server_name: str = "192.168.1.10"
+    server_name: str = "127.0.0.1"
 
     # CubeSat TCP
     server_TCP_port_cs: int = 8005
@@ -45,6 +45,18 @@ class CommonData:
     TelemFreqVal: float = 5.0
     ImgFreqVal: float = 10
     imgbaudrate: int = 32
+
+    # UDP transport (Space Packet Protocol)
+    udp_tc_socket: socket.socket = None   # single socket for sending TC to either node
+    ebox_tc_seq: int = 0                  # rolling 14-bit TC sequence counter (EBOX)
+    cs_tc_seq:   int = 0                  # rolling 14-bit TC sequence counter (CubeSat)
+    last_ebox_tc_ack: int = 0             # last_tc_seq echoed in EBOX TM
+    last_cs_tc_ack:   int = 0             # last_tc_seq echoed in CubeSat TM
+    last_ebox_tm_time: float = 0.0        # time.time() of last received EBOX TM packet
+    last_cs_tm_time:   float = 0.0        # time.time() of last received CS TM packet
+
+    # Camera / motor UI state
+    selected_camera: int = 1   # 1-4 = EBOX RZ1-4, 5-6 = CS RZ1-2
 
     # Telemetry queues (class-level, shared singletons)
     ebox_telem_queue = queue.Queue()
