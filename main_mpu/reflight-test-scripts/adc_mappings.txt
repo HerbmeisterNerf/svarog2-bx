@@ -1,0 +1,18 @@
+ADC,ADC_Input_Pin,Signal_Name,Description
+Thermal ADC,IN0,THERMAL_SENS_OUT_1,External thermal sensor 1
+Thermal ADC,IN1,THERMAL_SENS_OUT_2,External thermal sensor 2
+Thermal ADC,IN2,THERMAL_SENS_OUT_3,External thermal sensor 3
+Thermal ADC,IN3,THERMAL_SENS_OUT_4,External thermal sensor 4
+Thermal ADC,IN4,THERMAL_SENS_OUT_5,External thermal sensor 5
+Thermal ADC,IN5,THERMAL_SENS_OUT_6,External thermal sensor 6
+Thermal ADC,IN6,THERMAL_SENS_INT_1,Internal temperature monitor 1 (on-board)
+Thermal ADC,IN7,THERMAL_SENS_INT_2,Internal temperature monitor 2 (on-board)
+
+PDU ADC,IN0,V_SENSE5,5 V rail current sense
+PDU ADC,IN1,V_SENSE9,9 V rail current sense
+PDU ADC,IN2,V_SENSE12,12 V rail current sense
+PDU ADC,IN3,ADC_V5,5 V rail voltage
+PDU ADC,IN4,ADC_V9,9 V rail voltage
+PDU ADC,IN5,ADC_V12,12 V rail voltage
+PDU ADC,IN6,ADC_V28,28 V bus voltage
+PDU ADC,IN7,Unused,Not connected
