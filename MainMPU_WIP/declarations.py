@@ -26,9 +26,6 @@ peripheral_requests_lock = threading.Lock() # use this lock for the 3 variables 
 
 DATA_WAIT_TIMEOUT = 5   
 
-PDU_SPI_CS_PIN = 150
-THERMAL_SPI_CS_PIN = 153
-
 I2C_SDA = 3
 I2C_SCL = 5
 MPU1_EN = 11
@@ -42,7 +39,7 @@ P_LATCH_CLK = 27
 P_nRST = 29
 P_SCLK = 31
 P_DIN = 33
-P_OUT_EN = 25
+P_OUT_EN = 35
 UART_TX = 8
 UART_RX = 10
 MPU2_EN = 12
