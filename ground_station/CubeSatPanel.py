@@ -13,7 +13,7 @@ from SpacePacketComms import (
     tc_deploy_arm, tc_deploy_fire,
 )
 
-CS_TELEM_COUNT = 32
+CS_TELEM_COUNT = 33
 
 
 class CubeSatPanel:
@@ -108,9 +108,9 @@ class CubeSatPanel:
         self._fwen_btn.grid(row=0, column=1, padx=4, pady=2)
 
         self._fw_slider = tk.Scale(
-            f, from_=0, to=900, orient=tk.HORIZONTAL,
+            f, from_=0, to=100, orient=tk.HORIZONTAL,
             variable=self._fw_speed, font=("Arial", 7), length=220,
-            resolution=10, label="Speed (RPM)",
+            resolution=1, label="Speed (rad/s)",
             command=self._on_fw_slider, state=tk.DISABLED,
         )
         self._fw_slider.grid(row=0, column=2, padx=6)

@@ -30,3 +30,4 @@ Deploy fired,0.5,0.5,0.5,0.5
 Motor fault,0.5,0.5,0.5,0.5
 RZ 1 status,0.5,0.5,1.5,1.5
 RZ 2 status,0.5,0.5,1.5,1.5
+Encoder angle (deg),-1,-1,361,361

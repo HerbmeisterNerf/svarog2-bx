@@ -20,6 +20,7 @@ from TempController import TempController
 from peripherals import peripherals
 from CommandReciever import CommandReceiver
 from RADXA_UART_INTERFACE import UARTInterface
+from motor_interface import MotorController
 
 _shared = os.path.join(os.path.dirname(__file__), '..', '..', 'shared')
 sys.path.insert(0, _shared)
@@ -53,6 +54,10 @@ if __name__ == "__main__":
     uart_flywheel   = uarts[0] if len(uarts) > 0 else None
     uart_deployment = uarts[1] if len(uarts) > 1 else None
 
+    # Wrap the motor UARTs in the SimpleFOC Commander driver (B-G431B-ESC1).
+    motor_flywheel   = MotorController(uart_flywheel, name="flywheel") if uart_flywheel else None
+    motor_deployment = MotorController(uart_deployment, name="deployment") if uart_deployment else None
+
     # UDP receive socket: ground → flight (telecommands)
     rx_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     rx_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -71,13 +76,13 @@ if __name__ == "__main__":
         telem = SendTelem(
             tx_sock,
             temp_controllers=controllers,
-            uart_flywheel=uart_flywheel,
+            motor_flywheel=motor_flywheel,
             tc_ack=tc_ack,
         )
         cmd_rx = CommandReceiver(
             rx_sock,
-            uart_flywheel=uart_flywheel,
-            uart_deployment=uart_deployment,
+            motor_flywheel=motor_flywheel,
+            motor_deployment=motor_deployment,
             tc_ack=tc_ack,
         )
         telem.start()

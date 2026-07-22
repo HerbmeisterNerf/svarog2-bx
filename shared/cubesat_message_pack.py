@@ -1,4 +1,4 @@
-"""CubeSat telemetry packet — 33-field comma-separated format.
+"""CubeSat telemetry packet — 34-field comma-separated format.
 
 Field order must match ground_station/CubeSatPanel.py parser exactly.
 """
@@ -55,6 +55,9 @@ class CubeSatMessagePack:
         self.rz_1_status = 0
         self.rz_2_status = 0
 
+        # Encoder (AS5047 absolute shaft angle, deg)
+        self.encoder_angle = 0
+
     def generate_string(self):
         """Return comma-separated telemetry string in field order."""
         fields = [
@@ -92,5 +95,6 @@ class CubeSatMessagePack:
             self.motor_fault,
             self.rz_1_status,
             self.rz_2_status,
+            self.encoder_angle,
         ]
         return ",".join(str(f) for f in fields)

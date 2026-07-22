@@ -24,15 +24,19 @@ from tc_commands import (
     unpack_tc,
 )
 
+# Placeholder deployment-motor target (rad/s, velocity mode) until the real
+# deployment motion profile is defined. See CMD_DEPLOY_FIRE handling below.
+DEPLOY_SPEED = 10
+
 
 class CommandReceiver(threading.Thread):
     """Reads TC Space Packets from a UDP socket and dispatches commands."""
 
-    def __init__(self, udp_sock, uart_flywheel=None, uart_deployment=None, tc_ack=None):
+    def __init__(self, udp_sock, motor_flywheel=None, motor_deployment=None, tc_ack=None):
         super().__init__(daemon=True)
         self._sock = udp_sock
-        self.uart_flywheel  = uart_flywheel
-        self.uart_deployment = uart_deployment
+        self.motor_flywheel  = motor_flywheel      # MotorController (SimpleFOC Commander)
+        self.motor_deployment = motor_deployment   # MotorController (SimpleFOC Commander)
         self.tc_ack = tc_ack if tc_ack is not None else {"seq": 0}
         self._deploy_armed = False
 
@@ -72,17 +76,18 @@ class CommandReceiver(threading.Thread):
             self._pulse_bw(f"BW_{n}")
 
         elif cmd_id == CMD_MOT_ENABLE:
-            if self.uart_flywheel:
-                self.uart_flywheel.send("SM_0_1\n")
+            if self.motor_flywheel:
+                self.motor_flywheel.enable("velocity")
 
         elif cmd_id == CMD_FW_ENABLE:
-            if self.uart_flywheel:
-                self.uart_flywheel.send("SM_0_1\n")
+            if self.motor_flywheel:
+                self.motor_flywheel.enable("velocity")
 
         elif cmd_id == CMD_FW_SPEED:
-            if len(args) >= 2 and self.uart_flywheel:
+            if len(args) >= 2 and self.motor_flywheel:
                 speed = struct.unpack(">H", args[:2])[0]
-                self.uart_flywheel.send(f"SS_0_{speed}\n")
+                # velocity-mode target in rad/s (was RPM to the old Nano firmware)
+                self.motor_flywheel.set_target(speed)
 
         elif cmd_id == CMD_DEPLOY_ARM:
             self._deploy_armed = True
@@ -90,8 +95,11 @@ class CommandReceiver(threading.Thread):
 
         elif cmd_id == CMD_DEPLOY_FIRE:
             if self._deploy_armed:
-                if self.uart_deployment:
-                    self.uart_deployment.send("SM_1_1\n")
+                if self.motor_deployment:
+                    # TODO: define the deployment motion profile (target/duration).
+                    # Placeholder: spin the deployment motor in velocity mode.
+                    self.motor_deployment.enable("velocity")
+                    self.motor_deployment.set_target(DEPLOY_SPEED)
                     print(f"[{NODE_ID}] Deployment FIRED")
                 self._deploy_armed = False
             else:

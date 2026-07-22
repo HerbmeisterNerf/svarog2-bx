@@ -14,13 +14,14 @@ import threading
 
 from declarations import (
     peripheral_requests, peripheral_requests_lock,
-    gpio_MOTCON_EFUSE_FLT,
+    gpio_MOTCON_EFUSE_FLT, ENCODER_SPI_CS,
 )
 from node_config import (
     NODE_ID, NUM_SECONDARY_MPUS, NUM_BW, NUM_HEATERS,
     NUM_TEMP_SENSORS, HEATER_SENSOR_PAIRS,
 )
 from RADXA_SPI_INTERFACE import PDU_ADC, THERMAL_ADC
+from RADXA_ENCODER_INTERFACE import AS5047
 
 _shared = os.path.join(os.path.dirname(__file__), '..', '..', 'shared')
 sys.path.insert(0, _shared)
@@ -45,15 +46,22 @@ else:
 class SendTelem(threading.Thread):
     """Broadcasts a TM Space Packet every 5 s over a UDP broadcast socket."""
 
-    def __init__(self, tx_sock, temp_controllers, uart_flywheel=None, tc_ack=None):
+    def __init__(self, tx_sock, temp_controllers, motor_flywheel=None, tc_ack=None):
         super().__init__(daemon=True)
         self._sock = tx_sock
         self.pdu_adc = PDU_ADC()
         self.thermal_adc = THERMAL_ADC()
         self.controllers = temp_controllers
-        self.uart_flywheel = uart_flywheel
+        self.motor_flywheel = motor_flywheel   # MotorController (SimpleFOC Commander)
         self.tc_ack = tc_ack if tc_ack is not None else {"seq": 0}
         self._pkg_count = 0
+
+        # AS5047 encoder on the shared SPI(3) bus (system-level angle telemetry).
+        self.encoder = None
+        try:
+            self.encoder = AS5047(ENCODER_SPI_CS)
+        except Exception as e:
+            print(f"[{NODE_ID}] Encoder init failed: {e}")
 
     def run(self):
         while True:
@@ -113,16 +121,12 @@ class SendTelem(threading.Thread):
         except Exception:
             pass
 
-        if self.uart_flywheel:
-            try:
-                self.uart_flywheel.send("GS_0\n")
-                resp = self.uart_flywheel.receive(timeout=1.0)
-                if resp:
-                    parts = resp.strip().split(",")
-                    if len(parts) >= 2:
-                        p.motor_speed = float(parts[1])
-            except Exception:
-                pass
+        if self.motor_flywheel:
+            vel = self.motor_flywheel.get_velocity(timeout=1.0)
+            if vel is not None:
+                p.motor_speed = round(vel, 3)   # rad/s (was RPM to old Nano fw)
+
+        p.encoder_angle = self._read_encoder_angle()
 
         return p.generate_string()
 
@@ -157,17 +161,13 @@ class SendTelem(threading.Thread):
             status = _secondary_client.get_status(i)
             setattr(p, f"rz_{i}_status", 1 if status.get("alive") else 0)
 
-        if self.uart_flywheel:
-            try:
-                self.uart_flywheel.send("GS_0\n")
-                resp = self.uart_flywheel.receive(timeout=1.0)
-                if resp:
-                    parts = resp.strip().split(",")
-                    if len(parts) >= 2:
-                        p.flywheel_speed = float(parts[1])
-                        p.flywheel_mode = int(parts[2]) if len(parts) > 2 else 0
-            except Exception:
-                pass
+        if self.motor_flywheel:
+            tel = self.motor_flywheel.get_telemetry(timeout=1.0)
+            if tel:
+                p.flywheel_speed = round(tel["velocity"], 3)   # rad/s
+                p.flywheel_mode = 1 if abs(tel["velocity"]) > 0.01 else 0
+
+        p.encoder_angle = self._read_encoder_angle()
 
         return p.generate_string()
 
@@ -185,3 +185,18 @@ class SendTelem(threading.Thread):
             thermal = "ERROR"
             print(f"[{NODE_ID}] Thermal ADC read failed: {e}")
         return pdu, thermal
+
+    # --------------------------------------------------------------- encoder
+
+    def _read_encoder_angle(self):
+        """Absolute shaft angle (deg) from the AS5047, or 0 if unavailable."""
+        if self.encoder is None:
+            return 0
+        try:
+            d = self.encoder.read_diagnostics()
+            if not d["valid"]:
+                return 0
+            return round(self.encoder.read_angle(), 2)
+        except Exception as e:
+            print(f"[{NODE_ID}] Encoder read failed: {e}")
+            return 0

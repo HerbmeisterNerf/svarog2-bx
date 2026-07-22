@@ -1,7 +1,7 @@
 import threading
 from LiveUpdatesTelemetry import update_data_table_colours
 
-CS_TELEM_COUNT = 32  # display fields: CubeSat packet indices 2..33
+CS_TELEM_COUNT = 33  # display fields: CubeSat packet indices 2..34 (incl. encoder_angle)
 
 
 class LiveUpdatesTelemetryCubeSat(threading.Thread):
@@ -23,11 +23,11 @@ class LiveUpdatesTelemetryCubeSat(threading.Thread):
 
     def _parse(self, s):
         parts = s.split(",")
-        if len(parts) < 34:
+        if len(parts) < 35:
             return None
         try:
-            # Skip index 0 (package_count) and 1 (timestamp); display indices 2..33
-            return [float(parts[i]) for i in range(2, 34)]
+            # Skip index 0 (package_count) and 1 (timestamp); display indices 2..34
+            return [float(parts[i]) for i in range(2, 35)]
         except (ValueError, IndexError):
             return None
 

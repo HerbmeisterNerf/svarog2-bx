@@ -11,7 +11,7 @@ Field positions in generate_string() output (must match LiveUpdatesTelemetry par
  23-28: temp_1..6_status
  29: burn_wire_1    30: burn_wire_2   31: current_lim_status
  32-35: rz_1..4_status
- 36: motor_speed
+ 36: motor_speed   37: encoder_angle (AS5047 shaft angle, deg)
 """
 
 
@@ -54,6 +54,7 @@ class EBoxMessagePack:
         self.rz_3_status = 0
         self.rz_4_status = 0
         self.motor_speed = 0
+        self.encoder_angle = 0   # AS5047 absolute shaft angle (deg)
 
     def generate_string(self):
         fields = [
@@ -71,5 +72,6 @@ class EBoxMessagePack:
             self.current_lim_status,
             self.rz_1_status, self.rz_2_status, self.rz_3_status, self.rz_4_status,
             self.motor_speed,
+            self.encoder_angle,
         ]
         return ",".join(str(f) for f in fields)

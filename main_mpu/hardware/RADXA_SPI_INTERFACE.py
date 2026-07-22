@@ -15,11 +15,19 @@ class SPI_ADC128S052:
         self.cs = mraa.Gpio(cs_pin)
         self.cs.dir(mraa.DIR_OUT)
         self.cs.write(1)
-        self.spi.frequency(freq)
+        self._freq = freq
+        self._apply_bus()
+
+    def _apply_bus(self):
+        """(Re)assert this device's bus settings. Required because the AS5047
+        encoder shares SPI(3) at Mode 1 (see RADXA_ENCODER_INTERFACE); the mraa
+        bus mode is global, so re-apply Mode 0 before every ADC transaction."""
+        self.spi.frequency(self._freq)
         self.spi.lsbmode(False)
         self.spi.mode(0)
 
     def read_channel(self, channel):
+        self._apply_bus()
         cmd = (channel & 0x07) << 3
         tx = bytearray([cmd, 0x00])
         self.cs.write(0)

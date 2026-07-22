@@ -36,6 +36,10 @@ MPU2_EN = 12
 MOTCON_EFUSE_FLT = 18
 PDU_SPI_CS = 24
 THERMAL_SPI_CS = 26
+# AS5047 encoder chip-select on the shared SPI(3) bus. TODO: confirm the exact
+# free 40-pin header pin the encoder CS is wired to on the PCB (pin 22 is a free
+# GPIO near the SPI pins 19/21/23; candidates 7/22/32/37).
+ENCODER_SPI_CS = 22
 PG_5 = 36
 PG_9 = 38
 PG_12 = 40
