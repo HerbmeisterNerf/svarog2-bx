@@ -59,8 +59,11 @@ from tc_commands import (
     CMD_FW_ENABLE, CMD_FW_SPEED,
     CMD_DEPLOY_ARM, CMD_DEPLOY_FIRE,
     CMD_CAM_RECORD, CMD_CAM_SNAPSHOT,
+    CMD_FOC_MODE, CMD_FOC_TARGET, CMD_FOC_LIMITS, CMD_FOC_ALIGN, CMD_FOC_ZERO,
+    FOC_MODE_OPEN, FOC_MODE_VELOCITY, FOC_MODE_POSITION,
     unpack_tc,
 )
+from image_snapshot import pack_chunks, IMG_UDP_PORT
 
 # On a single machine, send TM to loopback so the ground station receives it
 TM_DEST = "127.0.0.1"
@@ -96,6 +99,20 @@ class SimState:
         self.motor_speed   = 0.0
         self.rz_status     = [1, 1, 1, 1]   # Rock Zeros alive
 
+        # FOC motor (B-G431B-ESC1 / SimpleFOC) — drives the MotorPanel
+        self.foc_mode    = FOC_MODE_VELOCITY
+        self.foc_target  = 0.0     # rad/s (vel/open) or rad (position)
+        self.foc_angle   = 0.0     # shaft angle, rad (integrated)
+        self.foc_vel     = 0.0     # shaft velocity, rad/s
+        self.foc_cur     = 0.0     # q-axis current, A
+        self.foc_trq     = 0.0     # torque, Nm
+        self.foc_hall    = "101"
+        self.foc_vlim    = 6.0
+        self.foc_clim    = 1.0
+        self.foc_aligned = False
+        self.encoder_angle = 0.0   # AS5047 absolute angle, deg
+        self._t_last     = time.time()
+
         # CubeSat specific
         self.fw_speed      = 0
         self.fw_mode       = 0
@@ -128,6 +145,41 @@ class SimState:
             elif not self.motor_enabled and self.motor_speed > 0:
                 self.motor_speed = max(0, self.motor_speed - 100)
 
+            self._tick_foc()
+
+    def _tick_foc(self):
+        """First-order FOC motor model: velocity chases target, angle integrates,
+        current tracks the acceleration effort plus a small load term."""
+        now = time.time()
+        dt = max(1e-3, min(1.0, now - self._t_last))
+        self._t_last = now
+
+        if self.foc_mode == FOC_MODE_POSITION:
+            # P-controller on angle -> velocity command (clamped by voltage limit).
+            # Gain is kept below 1/dt so the discrete loop stays damped rather
+            # than ringing around the setpoint.
+            err = self.foc_target - self.foc_angle
+            cmd_vel = max(-25.0 * self.foc_vlim, min(25.0 * self.foc_vlim, 0.8 * err))
+        else:
+            cmd_vel = self.foc_target
+
+        prev_vel = self.foc_vel
+        # first-order lag toward the commanded velocity
+        self.foc_vel += (cmd_vel - self.foc_vel) * min(1.0, 4.0 * dt)
+        self.foc_angle += self.foc_vel * dt
+
+        accel = (self.foc_vel - prev_vel) / dt
+        # current: acceleration effort + viscous load + noise, clamped to the limit
+        raw = abs(accel) * 0.004 + abs(self.foc_vel) * 0.0035 + _noise(0.006)
+        self.foc_cur = max(-self.foc_clim, min(self.foc_clim, raw))
+        self.foc_trq = self.foc_cur * 0.047          # Kt = 0.047 Nm/A
+
+        # hall bits cycle through the 6 valid states with shaft position
+        states = ["001", "011", "010", "110", "100", "101"]
+        self.foc_hall = states[int(abs(self.foc_angle) / (math.pi / 3)) % 6]
+        self.encoder_angle = round(math.degrees(self.foc_angle) % 360, 2)
+        self.motor_speed = self.foc_vel
+
     def build_ebox_csv(self) -> str:
         with self.lock:
             h = self.heaters
@@ -146,7 +198,13 @@ class SimState:
                 self.bws[0], self.bws[1],   # burn wires (EBOX has 2)
                 0,                           # current_lim_status
                 rz[0], rz[1], rz[2], rz[3],
-                round(self.motor_speed, 0),
+                round(self.motor_speed, 3),
+                # --- FOC motor telemetry (fields 37-41) ---
+                round(self.encoder_angle, 2),
+                round(self.foc_angle, 4),
+                round(self.foc_cur, 3),
+                round(self.foc_trq, 4),
+                self.foc_hall,
             ]
         return ",".join(str(f) for f in fields)
 
@@ -190,10 +248,19 @@ _CMD_NAMES = {
     CMD_DEPLOY_FIRE:   "DEPLOY_FIRE",
     CMD_CAM_RECORD:    "CAM_RECORD",
     CMD_CAM_SNAPSHOT:  "CAM_SNAPSHOT",
+    CMD_FOC_MODE:      "FOC_MODE",
+    CMD_FOC_TARGET:    "FOC_TARGET",
+    CMD_FOC_LIMITS:    "FOC_LIMITS",
+    CMD_FOC_ALIGN:     "FOC_ALIGN",
+    CMD_FOC_ZERO:      "FOC_ZERO",
+}
+
+_FOC_MODE_NAMES = {
+    FOC_MODE_OPEN: "open-loop", FOC_MODE_VELOCITY: "velocity", FOC_MODE_POSITION: "position",
 }
 
 
-def dispatch_tc(cmd_id: int, args: bytes, state: SimState, node_label: str):
+def dispatch_tc(cmd_id: int, args: bytes, state: SimState, node_label: str, addr=None):
     name = _CMD_NAMES.get(cmd_id, f"0x{cmd_id:02X}")
     with state.lock:
         if cmd_id == CMD_HEATER_TOGGLE:
@@ -247,10 +314,95 @@ def dispatch_tc(cmd_id: int, args: bytes, state: SimState, node_label: str):
 
         elif cmd_id == CMD_CAM_SNAPSHOT:
             rz = args[0] if args else 1
-            print(f"  [{node_label}] RZ{rz} camera SNAPSHOT")
+            print(f"  [{node_label}] camera {rz} SNAPSHOT requested")
+            if addr:
+                threading.Thread(target=_send_snapshot, args=(addr[0],),
+                                 daemon=True).start()
+
+        # ---------------- fine FOC motor control ----------------
+        elif cmd_id == CMD_FOC_MODE:
+            if args:
+                state.foc_mode = args[0]
+                state.foc_target = 0.0
+                print(f"  [{node_label}] FOC mode → "
+                      f"{_FOC_MODE_NAMES.get(args[0], args[0])}")
+
+        elif cmd_id == CMD_FOC_TARGET:
+            if len(args) >= 4:
+                state.foc_target = struct.unpack(">f", args[:4])[0]
+                unit = "rad" if state.foc_mode == FOC_MODE_POSITION else "rad/s"
+                print(f"  [{node_label}] FOC target → {state.foc_target:g} {unit}")
+
+        elif cmd_id == CMD_FOC_LIMITS:
+            if len(args) >= 8:
+                state.foc_vlim, state.foc_clim = struct.unpack(">ff", args[:8])
+                print(f"  [{node_label}] FOC limits → {state.foc_vlim:.1f} V, "
+                      f"{state.foc_clim:.1f} A")
+
+        elif cmd_id == CMD_FOC_ALIGN:
+            state.foc_aligned = True
+            print(f"  [{node_label}] FOC align (initFOC) — Hall aligned")
+
+        elif cmd_id == CMD_FOC_ZERO:
+            state.foc_angle = 0.0
+            state.foc_target = 0.0
+            print(f"  [{node_label}] FOC zero — shaft position tared")
 
         else:
             print(f"  [{node_label}] Unknown cmd 0x{cmd_id:02X} args={args.hex()}")
+
+
+_snap_frame_id = [0]
+
+
+def _sim_frame() -> bytes:
+    """A JPEG for the snapshot reply.
+
+    Uses a real Arducam capture (scripts/sim_frame.jpg) when one is present,
+    otherwise renders a synthetic frame so the camera panel still has something
+    to show without flight hardware.
+    """
+    real = os.path.join(os.path.dirname(__file__), "sim_frame.jpg")
+    if os.path.exists(real) and os.path.getsize(real) > 1000:
+        with open(real, "rb") as f:
+            return f.read()
+    try:
+        from PIL import Image, ImageDraw
+        import io
+        w, h = 640, 400
+        im = Image.new("L", (w, h), 30)
+        d = ImageDraw.Draw(im)
+        # grid + moving marker so successive snapshots visibly differ
+        for x in range(0, w, 40):
+            d.line([(x, 0), (x, h)], fill=60)
+        for y in range(0, h, 40):
+            d.line([(0, y), (w, y)], fill=60)
+        n = _snap_frame_id[0]
+        cx = 60 + (n * 37) % (w - 120)
+        d.ellipse([cx - 26, h // 2 - 26, cx + 26, h // 2 + 26], fill=220)
+        d.text((12, 10), "SVAROG SIM FRAME  #%d" % n, fill=255)
+        d.text((12, h - 22), time.strftime("%H:%M:%S"), fill=255)
+        buf = io.BytesIO()
+        im.save(buf, format="JPEG", quality=80)
+        return buf.getvalue()
+    except ImportError:
+        return b""
+
+
+def _send_snapshot(dest_ip: str):
+    """Reply to a snapshot TC with a chunked JPEG over UDP (loss-tolerant)."""
+    jpeg = _sim_frame()
+    if not jpeg:
+        print("  [SIM] no frame available (install Pillow or add scripts/sim_frame.jpg)")
+        return
+    _snap_frame_id[0] = (_snap_frame_id[0] + 1) & 0xFFFF
+    dgs = pack_chunks(_snap_frame_id[0], jpeg)
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    for d in dgs:
+        s.sendto(d, (dest_ip, IMG_UDP_PORT))
+    s.close()
+    print(f"  [SIM] snapshot frame {_snap_frame_id[0]}: {len(jpeg)} bytes "
+          f"in {len(dgs)} chunks → {dest_ip}:{IMG_UDP_PORT}")
 
 
 def _bw_off(state: SimState, n: int, node_label: str):
@@ -297,7 +449,7 @@ def tc_receiver(rx_sock: socket.socket, ebox_state: SimState, cs_state: SimState
 
         print(f"\n>>> TC #{seq}  APID=0x{apid:03X}  cmd={_CMD_NAMES.get(cmd_id, f'0x{cmd_id:02X}')}"
               f"  args={args.hex() if args else '(none)'}")
-        dispatch_tc(cmd_id, args, state, label)
+        dispatch_tc(cmd_id, args, state, label, addr)
 
         with state.lock:
             state.last_tc_seq = seq
@@ -305,8 +457,9 @@ def tc_receiver(rx_sock: socket.socket, ebox_state: SimState, cs_state: SimState
 
 # ----------------------------------------------------------------- TM sender
 
-def tm_sender(tx_sock: socket.socket, ebox_state: SimState, cs_state: SimState):
-    """Broadcasts TM Space Packets every 5 s for both nodes."""
+def tm_sender(tx_sock: socket.socket, ebox_state: SimState, cs_state: SimState,
+              interval: float = 5.0):
+    """Broadcasts TM Space Packets for both nodes (flight cadence is 5 s)."""
     t_start = time.time()
     while True:
         t = time.time() - t_start
@@ -331,12 +484,24 @@ def tm_sender(tx_sock: socket.socket, ebox_state: SimState, cs_state: SimState):
                   + (f"  fw={state.fw_speed}rpm" if label.startswith("CS") else
                      f"  mot={state.motor_speed:.0f}rpm"))
 
-        time.sleep(5)
+        time.sleep(interval)
 
 
 # ----------------------------------------------------------------------- main
 
 def main():
+    # The status lines use arrows/ticks; Windows consoles default to cp1252 and
+    # would raise UnicodeEncodeError mid-run. Force UTF-8 output where supported.
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
+
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--tm-interval', type=float, default=5.0,
+                    help='TM broadcast period in seconds (flight uses 5)')
+    cli = ap.parse_args()
     print("=" * 60)
     print("  BEXUS 36 Flight Simulator")
     print("  TC listen : UDP 0.0.0.0:8005")
@@ -365,7 +530,7 @@ def main():
     rx_thread.start()
 
     try:
-        tm_sender(tx_sock, ebox_state, cs_state)
+        tm_sender(tx_sock, ebox_state, cs_state, cli.tm_interval)
     except KeyboardInterrupt:
         print("\n[SIM] Stopped")
     finally:

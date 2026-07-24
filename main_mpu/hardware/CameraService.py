@@ -41,6 +41,11 @@ class CameraService:
     # ------------------------------------------------------------- capture
     def capture_jpeg(self):
         """Grab one JPEG frame; return the bytes, or None on failure."""
+        # Clear any previous frame so a failed grab can never serve a stale image.
+        try:
+            os.remove(self.tmp_path)
+        except OSError:
+            pass
         if self._grab_gstreamer() or self._grab_ffmpeg():
             try:
                 with open(self.tmp_path, "rb") as f:
@@ -51,23 +56,32 @@ class CameraService:
         return None
 
     def _grab_gstreamer(self):
-        pipeline = (
-            "gst-launch-1.0 -q v4l2src device=%s num-buffers=1 ! "
-            "image/jpeg,width=%d,height=%d ! jpegparse ! filesink location=%s"
-            % (self.device, self.width, self.height, self.tmp_path)
-        )
-        return self._run(pipeline)
+        return self._run([
+            "gst-launch-1.0", "-q",
+            "v4l2src", "device=%s" % self.device, "num-buffers=1", "!",
+            "image/jpeg,width=%d,height=%d" % (self.width, self.height), "!",
+            "jpegparse", "!",
+            "filesink", "location=%s" % self.tmp_path,
+        ])
 
     def _grab_ffmpeg(self):
-        cmd = ("ffmpeg -y -f v4l2 -input_format mjpeg -video_size %dx%d "
-               "-i %s -frames:v 1 %s"
-               % (self.width, self.height, self.device, self.tmp_path))
-        return self._run(cmd)
+        return self._run([
+            "ffmpeg", "-y", "-f", "v4l2", "-input_format", "mjpeg",
+            "-video_size", "%dx%d" % (self.width, self.height),
+            "-i", self.device, "-frames:v", "1", self.tmp_path,
+        ])
 
     @staticmethod
-    def _run(cmd):
+    def _run(argv):
+        """Run a capture command as a direct child (never via a shell).
+
+        shell=True would leave the real capture process orphaned when the
+        timeout fires — subprocess only kills the shell, and the surviving
+        gst/ffmpeg keeps /dev/video0 open, breaking every later snapshot.
+        Passing argv directly means the timeout kills the capture process itself.
+        """
         try:
-            r = subprocess.run(cmd, shell=True, timeout=10,
+            r = subprocess.run(argv, timeout=10,
                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             return r.returncode == 0
         except (subprocess.TimeoutExpired, OSError):
