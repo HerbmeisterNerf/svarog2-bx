@@ -4,6 +4,8 @@ NUM_BW = 4
 NUM_HEATERS = 4
 NUM_TEMP_SENSORS = 4
 UART_MOTOR_IDS = [0]  # one Arduino (spinning motor)
+# ESC over USB CDC-ACM (B-G431B-ESC1). One spinning motor on the EBOX.
+MOTOR_USB_DEVICES = ["/dev/ttyACM0"]
 
 PERIPH_BINDINGS = {
     "BW_1": 0,

@@ -13,6 +13,8 @@ Transport:
   TM (telemetry)     flight → ground broadcast on UDP port 8006
 """
 
+from __future__ import annotations  # PEP 604 (X | None) hints on Python 3.9 flight computer
+
 import struct
 
 _PVN = 0b000             # Packet Version Number, always 0

@@ -58,6 +58,11 @@ class CommonData:
     # Camera / motor UI state
     selected_camera: int = 1   # 1-4 = EBOX RZ1-4, 5-6 = CS RZ1-2
 
+    # Parsed FOC motor telemetry — filled by the TM reader, read by MotorPanel.
+    # (class-level shared singleton, like the queues below)
+    motor_state = {"angle": 0.0, "vel": 0.0, "cur": 0.0, "trq": 0.0,
+                   "hall": "---", "t": 0.0}
+
     # Telemetry queues (class-level, shared singletons)
     ebox_telem_queue = queue.Queue()
     cs_telem_queue = queue.Queue()

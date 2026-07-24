@@ -3,6 +3,11 @@ import time
 import numpy as np
 import threading
 from node_config import NODE_ID, NUM_SECONDARY_MPUS, NUM_BW, NUM_HEATERS, NUM_TEMP_SENSORS, UART_MOTOR_IDS, PERIPH_BINDINGS, HEATER_SENSOR_PAIRS
+try:
+    from node_config import MOTOR_USB_DEVICES  # ESC CDC-ACM device paths
+except ImportError:
+    # Fall back to one ESC on the first ACM port per configured motor board.
+    MOTOR_USB_DEVICES = ["/dev/ttyACM%d" % i for i in range(len(UART_MOTOR_IDS))]
 
 assert set(PERIPH_BINDINGS.values()) == set(range(8))  # all 8 shift register outputs must be bound
 
@@ -36,10 +41,9 @@ MPU2_EN = 12
 MOTCON_EFUSE_FLT = 18
 PDU_SPI_CS = 24
 THERMAL_SPI_CS = 26
-# AS5047 encoder chip-select on the shared SPI(3) bus. TODO: confirm the exact
-# free 40-pin header pin the encoder CS is wired to on the PCB (pin 22 is a free
-# GPIO near the SPI pins 19/21/23; candidates 7/22/32/37).
-ENCODER_SPI_CS = 22
+# AS5047 encoder chip-select on the shared SPI(3) bus. Physical header pin 28
+# (encoder_spi_cs per the board pinout) — confirmed responding on hardware.
+ENCODER_SPI_CS = 28
 PG_5 = 36
 PG_9 = 38
 PG_12 = 40
@@ -65,6 +69,15 @@ gpio_P_nRST.dir(mraa.DIR_OUT)
 gpio_P_SCLK.dir(mraa.DIR_OUT)
 gpio_P_DIN.dir(mraa.DIR_OUT)
 gpio_P_OUT_EN.dir(mraa.DIR_OUT)
+
+# SAFETY: the instant these become outputs, force the peripheral shift-register
+# outputs DISABLED (high-Z) and clear the register, so a boot-time garbage latch
+# value cannot drive a burn-wire/heater before PeripheralDriver init runs. Any
+# module that imports declarations (ADC/encoder tests included) is now safe;
+# peripherals must deliberately clear-then-enable before driving anything.
+gpio_P_OUT_EN.write(1)   # /OE high = outputs high-Z (disabled)
+gpio_P_nRST.write(0)     # clear the shift register...
+gpio_P_nRST.write(1)     # ...then release reset (idle, still output-disabled)
 
 gpio_MOTCON_EFUSE_FLT   = mraa.Gpio(MOTCON_EFUSE_FLT)
 gpio_PG_5               = mraa.Gpio(PG_5)

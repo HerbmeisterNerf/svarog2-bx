@@ -122,9 +122,13 @@ class SendTelem(threading.Thread):
             pass
 
         if self.motor_flywheel:
-            vel = self.motor_flywheel.get_velocity(timeout=1.0)
-            if vel is not None:
-                p.motor_speed = round(vel, 3)   # rad/s (was RPM to old Nano fw)
+            tel = self.motor_flywheel.get_telemetry(timeout=1.0)
+            if tel:
+                p.motor_speed   = round(tel["velocity"], 3)   # rad/s
+                p.motor_angle   = round(tel["angle"], 4)      # FOC shaft rad
+                p.motor_current = round(tel["current"], 3)    # A
+                p.motor_torque  = round(tel["torque"], 4)     # Nm
+                p.motor_hall    = tel["hall"]                 # raw hall bits
 
         p.encoder_angle = self._read_encoder_angle()
 

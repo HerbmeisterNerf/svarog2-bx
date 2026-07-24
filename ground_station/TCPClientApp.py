@@ -14,10 +14,10 @@ from UDPTelemReader import UDPTelemReader
 from WatchTelem import WatchTelem
 from WatchTelemCubeSat import WatchTelemCubeSat
 from WatchCamera import WatchCamera
+from MotorPanel import MotorPanel
 from SpacePacketComms import (
     SpacePacketComms,
     tc_heater_toggle, tc_bw_pulse,
-    tc_mot_enable, tc_mot_disable,
     tc_cam_record, tc_cam_snapshot,
     tc_fw_enable, tc_fw_speed,
     tc_deploy_arm, tc_deploy_fire,
@@ -93,7 +93,6 @@ class TCPClientApp:
         self.SaveCam        = tk.IntVar(value=0)
         self._ebox_actions  = False
         self._cs_actions    = False
-        self._motor_on      = False
         self._deploy_armed  = False
         self._fw_speed_var  = tk.IntVar(value=0)
         self._cam_btn_refs  = []
@@ -122,7 +121,6 @@ class TCPClientApp:
         self._build_cs_panel(self._right)
 
         self._start_threads()
-        self._poll_motor_speed()
 
     # ── data formats ─────────────────────────────────────────────────────────
 
@@ -283,30 +281,10 @@ class TCPClientApp:
 
         _sep(parent, pady=6)
 
-        _section(parent, "Spool Motor  ·  EBOX", ACCENT_EB)
-
-        mot_frame = tk.Frame(parent, bg=PANEL)
-        mot_frame.pack(fill=tk.X, padx=10, pady=10)
-
-        self._mot_btn = tk.Button(
-            mot_frame, text="ENABLE SPIN MOTOR",
-            font=(_SANS, 10, "bold"), width=22, height=2,
-            bg="#2d2d2d", fg=TEXT_DIM,
-            activebackground="#363636", activeforeground=TEXT,
-            relief=tk.FLAT, bd=0, cursor="hand2",
-            command=self._toggle_motor, state=tk.DISABLED)
-        self._mot_btn.pack(side=tk.LEFT, padx=4)
-
-        spd_frame = tk.Frame(mot_frame, bg=PANEL)
-        spd_frame.pack(side=tk.LEFT, padx=16)
-        tk.Label(spd_frame, text="SPEED", font=(_SANS, 7),
-                 bg=PANEL, fg=TEXT_DIM).pack()
-        self._mot_spd_lbl = tk.Label(spd_frame, text="—",
-                                     font=(_MONO, 18, "bold"),
-                                     bg=PANEL, fg=TEXT, width=5)
-        self._mot_spd_lbl.pack()
-        tk.Label(spd_frame, text="RPM", font=(_SANS, 7),
-                 bg=PANEL, fg=TEXT_DIM).pack()
+        # Full FOC motor control (open/closed-loop, velocity/position, Hall dial,
+        # current/torque chart, live limits, STOP). Commands go out as UDP TCs and
+        # telemetry comes from the parsed TM — flight-link compatible.
+        self._motor_panel = MotorPanel(parent)
 
     def _select_camera(self, cam_id):
         CommonData.selected_camera = cam_id
@@ -322,28 +300,6 @@ class TCPClientApp:
             SpacePacketComms.send_ebox_tc(tc_cam_snapshot(c))
         else:
             SpacePacketComms.send_cs_tc(tc_cam_snapshot(c - 4))
-
-    def _toggle_motor(self):
-        if not self._motor_on:
-            self._motor_on = True
-            self._mot_btn.configure(text="DISABLE SPIN MOTOR",
-                                    bg=COL_OFF, fg="white",
-                                    activebackground="#b71c1c")
-            SpacePacketComms.send_ebox_tc(tc_mot_enable())
-        else:
-            self._motor_on = False
-            self._mot_btn.configure(text="ENABLE SPIN MOTOR",
-                                    bg="#363636", fg=TEXT,
-                                    activebackground="#404040")
-            SpacePacketComms.send_ebox_tc(tc_mot_disable())
-
-    def _poll_motor_speed(self):
-        if self.tableLabels:
-            try:
-                self._mot_spd_lbl.configure(text=self.tableLabels[34]["text"])
-            except Exception:
-                pass
-        self.master.after(1000, self._poll_motor_speed)
 
     # ============================================================ CUBESAT PANEL
 
@@ -483,8 +439,6 @@ class TCPClientApp:
         self._eb_disc_btn.configure(bg=COL_OFF, fg="white", state=tk.NORMAL)
         self._eb_dot.configure(fg=COL_ON)
         self._eb_telem_btn.configure(state=tk.NORMAL)
-        self._mot_btn.configure(state=tk.NORMAL, fg=TEXT,
-                                bg="#363636", activebackground="#404040")
         self._cam_btn.configure(state=tk.NORMAL)
         self._cam_snap_btn.configure(state=tk.NORMAL)
         print(f"EBOX target set: {CommonData.server_name}")
@@ -496,9 +450,6 @@ class TCPClientApp:
         self._eb_conn_btn.configure(bg="#363636", fg=TEXT, state=tk.NORMAL)
         self._eb_disc_btn.configure(bg="#363636", fg=TEXT, state=tk.DISABLED)
         self._eb_dot.configure(fg=COL_OFF)
-        self._motor_on = False
-        self._mot_btn.configure(text="ENABLE SPIN MOTOR", state=tk.DISABLED,
-                                fg=TEXT_DIM, bg="#2d2d2d")
         self._cam_btn.configure(state=tk.DISABLED)
         self._cam_snap_btn.configure(state=tk.DISABLED)
         for w in self._eb_action_widgets:
@@ -617,6 +568,10 @@ class TCPClientApp:
         CommonData.runTelemetry    = False
         CommonData.runTelemetry_cs = False
         CommonData.runCamera       = False
+        try:
+            self._motor_panel.close()
+        except Exception:
+            pass
         self.master.destroy()
 
 

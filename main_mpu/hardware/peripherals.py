@@ -13,10 +13,18 @@ class PeripheralDriver(threading.Thread):
 
 		global peripheral_requests
 
+		# SAFETY: disable outputs, clear the register, load zeros into the output
+		# latch, and only THEN enable — so the first value ever driven is all-off,
+		# never a power-on garbage value (prevents spurious burn-wire firing).
+		gpio_P_OUT_EN.write(1)  # outputs high-Z (disabled)
+		gpio_P_nRST.write(0)    # clear shift register
 		gpio_P_nRST.write(1)
-		gpio_P_OUT_EN.write(0)
 		self.output = np.zeros(8)  # keeps track of values on output
 		self.register = np.zeros(8)  # keeps track of value in register
+		for _ in range(8):
+			self.add_element(0)  # shift in 8 zeros
+		self.send_output()      # latch all-zero to the outputs
+		gpio_P_OUT_EN.write(0)  # now safe to enable: every output = 0
 		self.continue_run = True
 		self.bindings_iterable = [key for key, value in sorted(PERIPH_BINDINGS.items(
 		# sorted over values of PERIPH_BINDINGS

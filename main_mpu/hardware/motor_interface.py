@@ -63,6 +63,14 @@ class MotorController:
         """Tare: define the current shaft position as zero."""
         self._send("Z")
 
+    def align(self):
+        """Run initFOC() on demand (Hall alignment) — firmware 'I' command.
+
+        The flight firmware is boot-silent (no auto-align), so closed-loop
+        velocity/position modes require this once after power-up.
+        """
+        self._send("I")
+
     def open_loop(self, on):
         """Sensorless open-loop fallback (runs even if the Hall/align failed)."""
         self._send("O1" if on else "O0")

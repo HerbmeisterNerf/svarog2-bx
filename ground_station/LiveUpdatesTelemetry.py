@@ -1,5 +1,6 @@
 import threading
 import csv
+import time
 from CommonData import CommonData
 from PortCommunication import PortCommunication
 from MessagePack import MessagePack
@@ -84,6 +85,23 @@ class LiveUpdatesTelemetry(threading.Thread):
         setattr(self.current_packet, "rpi_IO_3",             v[34])
         setattr(self.current_packet, "rpi_IO_4",             v[35])
         setattr(self.current_packet, "motor_speed",          v[36])
+
+        # Fine FOC telemetry (v[38..41]) → shared motor_state for MotorPanel.
+        # Tolerates older packets that stop at motor_speed.
+        try:
+            ms = CommonData.motor_state
+            ms["vel"] = float(v[36])
+            if len(v) > 38:
+                ms["angle"] = float(v[38])
+            if len(v) > 39:
+                ms["cur"] = float(v[39])
+            if len(v) > 40:
+                ms["trq"] = float(v[40])
+            if len(v) > 41:
+                ms["hall"] = v[41].strip()
+            ms["t"] = time.time()
+        except (ValueError, IndexError):
+            pass
 
     def __formatdata(self) -> list:
         p = self.current_packet

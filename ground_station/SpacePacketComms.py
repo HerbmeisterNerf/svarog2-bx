@@ -29,6 +29,8 @@ from tc_commands import (  # noqa: F401
     tc_fw_enable, tc_fw_speed,
     tc_deploy_arm, tc_deploy_fire,
     tc_cam_record, tc_cam_snapshot,
+    tc_foc_mode, tc_foc_target, tc_foc_limits, tc_foc_align, tc_foc_zero,
+    FOC_MODE_OPEN, FOC_MODE_VELOCITY, FOC_MODE_POSITION,
 )
 
 from CommonData import CommonData

@@ -21,6 +21,8 @@ from tc_commands import (
     CMD_MOT_ENABLE, CMD_FW_ENABLE, CMD_FW_SPEED,
     CMD_DEPLOY_ARM, CMD_DEPLOY_FIRE,
     CMD_CAM_RECORD, CMD_CAM_SNAPSHOT,
+    CMD_FOC_MODE, CMD_FOC_TARGET, CMD_FOC_LIMITS, CMD_FOC_ALIGN, CMD_FOC_ZERO,
+    FOC_MODE_OPEN, FOC_MODE_VELOCITY, FOC_MODE_POSITION,
     unpack_tc,
 )
 
@@ -32,11 +34,13 @@ DEPLOY_SPEED = 10
 class CommandReceiver(threading.Thread):
     """Reads TC Space Packets from a UDP socket and dispatches commands."""
 
-    def __init__(self, udp_sock, motor_flywheel=None, motor_deployment=None, tc_ack=None):
+    def __init__(self, udp_sock, motor_flywheel=None, motor_deployment=None,
+                 camera_service=None, tc_ack=None):
         super().__init__(daemon=True)
         self._sock = udp_sock
         self.motor_flywheel  = motor_flywheel      # MotorController (SimpleFOC Commander)
         self.motor_deployment = motor_deployment   # MotorController (SimpleFOC Commander)
+        self.camera_service = camera_service       # CameraService (local /dev/video0)
         self.tc_ack = tc_ack if tc_ack is not None else {"seq": 0}
         self._deploy_armed = False
 
@@ -62,11 +66,11 @@ class CommandReceiver(threading.Thread):
                 continue
             cmd_id, args = parsed
 
-            self._dispatch(cmd_id, args)
+            self._dispatch(cmd_id, args, addr)
             self.tc_ack["seq"] = pkt["seq_count"]
             print(f"[{NODE_ID}] TC #{pkt['seq_count']} cmd=0x{cmd_id:02X} accepted")
 
-    def _dispatch(self, cmd_id: int, args: bytes):
+    def _dispatch(self, cmd_id: int, args: bytes, addr=None):
         if cmd_id == CMD_HEATER_TOGGLE:
             n = args[0] if args else 1
             self._toggle_peripheral(f"HEAT_{n}")
@@ -111,8 +115,67 @@ class CommandReceiver(threading.Thread):
                 self._camera_command(rz_idx, "record_start" if action else "record_stop")
 
         elif cmd_id == CMD_CAM_SNAPSHOT:
-            if args:
-                self._camera_command(args[0], "snapshot")
+            rz_idx = args[0] if args else 0
+            # Index 0 = this node's own camera (/dev/video0); grab it locally
+            # and stream the JPEG straight back to the requester over UDP.
+            if rz_idx == 0 and self.camera_service and addr:
+                self.camera_service.send_snapshot(addr[0])
+            else:
+                self._camera_command(rz_idx, "snapshot")
+
+        # ---- fine FOC motor control (relayed to the ESC over USB) ----
+        elif cmd_id == CMD_FOC_MODE:
+            motor = self._foc_motor()
+            if motor and args:
+                self._set_foc_mode(motor, args[0])
+
+        elif cmd_id == CMD_FOC_TARGET:
+            motor = self._foc_motor()
+            if motor and len(args) >= 4:
+                target = struct.unpack(">f", args[:4])[0]
+                motor.set_target(target)
+
+        elif cmd_id == CMD_FOC_LIMITS:
+            motor = self._foc_motor()
+            if motor and len(args) >= 8:
+                vlim, clim = struct.unpack(">ff", args[:8])
+                motor.set_limits(voltage=vlim, current=clim)
+
+        elif cmd_id == CMD_FOC_ALIGN:
+            motor = self._foc_motor()
+            if motor:
+                motor.align()
+
+        elif cmd_id == CMD_FOC_ZERO:
+            motor = self._foc_motor()
+            if motor:
+                motor.zero()
+
+    def _foc_motor(self):
+        """The motor driven by the fine FOC telecommands.
+
+        On both nodes this is the primary Commander ESC — the spinning motor on
+        the EBOX, the flywheel on the CubeSat — wired as ``motor_flywheel``.
+        """
+        return self.motor_flywheel
+
+    def _set_foc_mode(self, motor, mode: int):
+        """Apply a FOC control mode from a CMD_FOC_MODE arg.
+
+        OPEN     -> sensorless open-loop (O1); target is open-loop velocity.
+        VELOCITY -> closed-loop velocity (O0 + MC1).
+        POSITION -> closed-loop angle    (O0 + MC2).
+        """
+        if mode == FOC_MODE_OPEN:
+            motor.open_loop(True)
+        elif mode == FOC_MODE_VELOCITY:
+            motor.open_loop(False)
+            motor.set_mode("velocity")
+        elif mode == FOC_MODE_POSITION:
+            motor.open_loop(False)
+            motor.set_mode("angle")
+        else:
+            print(f"[{NODE_ID}] Unknown FOC mode: {mode}")
 
     def _toggle_peripheral(self, name: str):
         if name not in PERIPH_BINDINGS:

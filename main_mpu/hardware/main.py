@@ -19,8 +19,9 @@ from DataSender import SendTelem
 from TempController import TempController
 from peripherals import peripherals
 from CommandReciever import CommandReceiver
-from RADXA_UART_INTERFACE import UARTInterface
+from USB_SERIAL_INTERFACE import USBSerialInterface
 from motor_interface import MotorController
+from CameraService import CameraService
 
 _shared = os.path.join(os.path.dirname(__file__), '..', '..', 'shared')
 sys.path.insert(0, _shared)
@@ -33,9 +34,21 @@ tc_ack = {"seq": 0}
 
 
 def make_uarts():
-    """Instantiate one UARTInterface per motor Arduino defined in node_config."""
-    uart_hw_ids = [1, 2]   # UART1 = flywheel/spinning, UART2 = deployment (CubeSat only)
-    return [UARTInterface(uart_id=uart_hw_ids[i]) for i in range(len(UART_MOTOR_IDS))]
+    """Open one USB CDC-ACM link per ESC listed in node_config.MOTOR_USB_DEVICES.
+
+    The ESC's hardwired UART contends with the on-board ST-Link, so the motor
+    is driven over its USB port (/dev/ttyACM*) instead. A device that fails to
+    open (ESC not plugged in) yields None so the rest of the flight code runs.
+    """
+    uarts = []
+    for dev in MOTOR_USB_DEVICES:
+        try:
+            uarts.append(USBSerialInterface(device=dev))
+            print(f"[{NODE_ID}] ESC link open on {dev}")
+        except OSError as e:
+            print(f"[{NODE_ID}] WARNING: could not open ESC on {dev}: {e}")
+            uarts.append(None)
+    return uarts
 
 
 def shutdown(uarts):
@@ -45,7 +58,8 @@ def shutdown(uarts):
     peripherals.reset()
     peripherals.send_output()
     for u in uarts:
-        u.close()
+        if u is not None:
+            u.close()
     print(f"[{NODE_ID}] Shutdown complete")
 
 
@@ -57,6 +71,9 @@ if __name__ == "__main__":
     # Wrap the motor UARTs in the SimpleFOC Commander driver (B-G431B-ESC1).
     motor_flywheel   = MotorController(uart_flywheel, name="flywheel") if uart_flywheel else None
     motor_deployment = MotorController(uart_deployment, name="deployment") if uart_deployment else None
+
+    # Local camera snapshot service (grabs /dev/video0 on CMD_CAM_SNAPSHOT).
+    camera_service = CameraService(device="/dev/video0")
 
     # UDP receive socket: ground → flight (telecommands)
     rx_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -83,6 +100,7 @@ if __name__ == "__main__":
             rx_sock,
             motor_flywheel=motor_flywheel,
             motor_deployment=motor_deployment,
+            camera_service=camera_service,
             tc_ack=tc_ack,
         )
         telem.start()

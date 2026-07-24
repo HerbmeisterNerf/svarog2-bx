@@ -12,6 +12,7 @@ Field positions in generate_string() output (must match LiveUpdatesTelemetry par
  29: burn_wire_1    30: burn_wire_2   31: current_lim_status
  32-35: rz_1..4_status
  36: motor_speed   37: encoder_angle (AS5047 shaft angle, deg)
+ 38: motor_angle (FOC shaft rad)  39: motor_current (A)  40: motor_torque (Nm)  41: motor_hall
 """
 
 
@@ -55,6 +56,11 @@ class EBoxMessagePack:
         self.rz_4_status = 0
         self.motor_speed = 0
         self.encoder_angle = 0   # AS5047 absolute shaft angle (deg)
+        # Fine FOC telemetry from the B-G431B-ESC1 (via USB, folded into TM)
+        self.motor_angle = 0     # FOC shaft angle (rad)
+        self.motor_current = 0   # torque-axis current magnitude (A)
+        self.motor_torque = 0    # estimated torque (Nm)
+        self.motor_hall = 0      # raw hall bits e.g. 101
 
     def generate_string(self):
         fields = [
@@ -73,5 +79,6 @@ class EBoxMessagePack:
             self.rz_1_status, self.rz_2_status, self.rz_3_status, self.rz_4_status,
             self.motor_speed,
             self.encoder_angle,
+            self.motor_angle, self.motor_current, self.motor_torque, self.motor_hall,
         ]
         return ",".join(str(f) for f in fields)
