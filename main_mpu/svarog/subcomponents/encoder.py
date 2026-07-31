@@ -1,24 +1,20 @@
-from declarations import *
-import struct
+import declarations as d
+import time
 
 
 class SPIEncoder:
-    """Generic SPI encoder driver for hall effect encoders.
-    
-    Configure for your specific encoder chip by overriding parse().
-    Common protocols: 2-byte or 3-byte reads.
-    """
-    def __init__(self, cs_pin=ENCODER_SPI_CS, spi_index=3, freq=1000000, mode=0):
-        self.cs = mraa.Gpio(cs_pin)
-        self.cs.dir(mraa.DIR_OUT)
+    def __init__(self, cs_pin=None, spi_index=3, freq=1000000, mode=0):
+        if cs_pin is None:
+            cs_pin = d.ENCODER_SPI_CS
+        self.cs = d.mraa.Gpio(cs_pin)
+        self.cs.dir(d.mraa.DIR_OUT)
         self.cs.write(1)
-        self.spi = mraa.Spi(spi_index)
+        self.spi = d.mraa.Spi(spi_index)
         self.spi.frequency(freq)
         self.spi.lsbmode(False)
         self.spi.mode(mode)
 
     def read_raw(self, tx_bytes):
-        """Send tx_bytes over SPI and return the raw response."""
         tx = bytearray(tx_bytes)
         self.cs.write(0)
         rx = self.spi.write(tx)
@@ -26,13 +22,11 @@ class SPIEncoder:
         return bytes(rx)
 
     def read_angle(self):
-        """Read and return angle in degrees. Override for your chip."""
         rx = self.read_raw([0xFF, 0xFF])
         angle = ((rx[0] << 8) | rx[1]) & 0x3FFF
         return angle * 360.0 / 16384.0
 
     def read_all(self):
-        """Return dict of all available readings. Override for your chip."""
         rx = self.read_raw([0xFF, 0xFF])
         angle_raw = ((rx[0] << 8) | rx[1]) & 0x3FFF
         return {
@@ -47,8 +41,9 @@ class SPIEncoder:
 
 
 class AS5048A(SPIEncoder):
-    """AS5048A/B 14-bit absolute magnetic encoder."""
-    def __init__(self, cs_pin=ENCODER_SPI_CS, spi_index=3):
+    def __init__(self, cs_pin=None, spi_index=3):
+        if cs_pin is None:
+            cs_pin = d.ENCODER_SPI_CS
         super().__init__(cs_pin, spi_index, freq=1000000, mode=1)
 
     def read_raw_angle(self):
@@ -72,18 +67,3 @@ class AS5048A(SPIEncoder):
             "cof": cof,
             "raw_hex": rx.hex(),
         }
-
-
-if __name__ == "__main__":
-    import sys
-    cs_pin = int(sys.argv[1]) if len(sys.argv) > 1 else ENCODER_SPI_CS
-    print(f"Encoder test on CS pin {cs_pin} (SPI3)")
-    enc = SPIEncoder(cs_pin=cs_pin)
-    try:
-        while True:
-            data = enc.read_all()
-            print(f"  {data}")
-            time.sleep(0.5)
-    except KeyboardInterrupt:
-        enc.close()
-        print("Done")

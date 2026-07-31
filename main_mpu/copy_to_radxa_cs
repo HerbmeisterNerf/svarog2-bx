@@ -1,0 +1,1 @@
+scp -r reflight-test-scripts radxa@192.168.78.2:~/Desktop/reflight-test-scripts

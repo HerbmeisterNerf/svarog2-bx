@@ -1,47 +1,66 @@
-from declarations import *
-import sys
+#!/usr/bin/env python3
+import subprocess, time, sys, os
 
-def open_uart(uart_id=7, baud=115200):
-    u = mraa.Uart(uart_id)
-    u.setBaudRate(baud)
-    u.setMode(8, mraa.UART_PARITY_NONE, 1)
-    u.setFlowcontrol(False, False)
-    return u
+UART = "/dev/ttyS7"
 
-def send(u, msg):
-    if isinstance(msg, str):
-        msg = msg.encode('ascii')
-    u.write(msg)
-    u.flush()
+def uart_write(cmd):
+    subprocess.run(["sh", "-c", f'echo "{cmd}" > {UART}'],
+                   check=True, timeout=2)
 
-def recv(u, timeout=0.5):
-    start = time.time()
-    data = b""
-    while time.time() - start < timeout:
-        if u.dataAvailable():
-            data += u.readStr(128).encode('ascii')
-        if data and data[-1] == ord('\n'):
-            break
-        time.sleep(0.01)
-    return data.decode('ascii').strip() if data else None
+def uart_read(timeout=1.0):
+    try:
+        r = subprocess.run(["timeout", str(timeout), "cat", UART],
+                           capture_output=True, text=True, timeout=timeout + 0.5)
+        return r.stdout.strip() if r.stdout else None
+    except subprocess.TimeoutExpired:
+        return None
+
+def cmd(cmd_str, read=True, timeout=1.0):
+    uart_write(cmd_str)
+    time.sleep(0.05)
+    if read:
+        return uart_read(timeout)
+
+def ping():
+    return cmd("PING")
+
+def set_mode(mode):
+    return cmd(f"TC{mode}")
+
+def set_current(val):
+    return cmd(f"C{val}")
+
+def set_speed(speed):
+    return cmd(f"T{speed}")
+
+def get_status():
+    return cmd("GS")
+
+def enable_motor():
+    return cmd("SM1")
+
+def disable_motor():
+    return cmd("SM0")
+
+def ce():
+    return cmd("CE")
+
+def raw(text):
+    return cmd(text)
 
 if __name__ == "__main__":
-    uart_id = int(sys.argv[1]) if len(sys.argv) > 1 else 7
-    u = open_uart(uart_id)
-    resp = recv(u, timeout=2)
-    if resp:
-        print(resp)
-    print("Commands: T<val> (target current), G (get state), I (init FOC), q (quit)")
+    if not os.path.exists(UART):
+        print(f"Error: {UART} not found")
+        sys.exit(1)
+
+    print(f"Motor UART: {UART}")
+    print("Commands: TC<0-3> (mode)  C<val> (current)  T<val> (speed)")
+    print("          GS (status)  SM0/1 (off/on)  CE (errors)  q (quit)")
     try:
         while True:
             inp = input("> ").strip()
             if inp == "q":
                 break
-            send(u, inp + "\n")
-            resp = recv(u, timeout=1)
-            if resp:
-                print(resp)
+            print(cmd(inp))
     except KeyboardInterrupt:
         pass
-    finally:
-        u = None

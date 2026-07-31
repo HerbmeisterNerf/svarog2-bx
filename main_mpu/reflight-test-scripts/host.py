@@ -29,17 +29,14 @@ class SensorReader(threading.Thread):
         self.thermal_adc = THERMAL_ADC()
 
         self.pg_pins = {
-            "PWR_GOOD_12": gpio_PWR_GOOD_12,
-            "PWR_GOOD_5": gpio_PWR_GOOD_5,
-            "PWR_GOOD_9": gpio_PWR_GOOD_9,
+            "PG_5": gpio_PG_5,
+            "PG_9": gpio_PG_9,
+            "PG_12": gpio_PG_12,
         }
         self.flt_pins = {
-            "FLT_P1": gpio_FLT_P1,
             "FLT_P2": gpio_FLT_P2,
             "FLT_P3": gpio_FLT_P3,
             "FLT_P4": gpio_FLT_P4,
-            "FLT_P5": gpio_FLT_P5,
-            "FLT_MOTCON": gpio_FLT_MOTCON,
         }
 
     @property
@@ -199,7 +196,7 @@ class CommandThread(threading.Thread):
         gpio = _periph_to_gpio(parts[1])
         if gpio is None:
             return f"ERR: unknown peripheral: {parts[1]}"
-        ms = int(parts[2]) if len(parts) > 2 else 2000
+        ms = int(parts[2]) if len(parts) > 2 else 1500
         gpio.write(1)
         time.sleep(ms / 1000.0)
         gpio.write(0)

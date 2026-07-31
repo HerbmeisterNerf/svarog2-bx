@@ -1,41 +1,43 @@
-Pin,Net
-1,3V3
-2,5V_MPU
-3,SENSOR_I2C_SDA (I2C3_SDA)
-4,5V
-5,SENSOR_I2C_SCL (I2C3_SCL)
-6,GND
-7,EN_P3
-8,UART7_TX
-9,GND
-10,UART7_RX
-11,EN_P2
-12,EN_P5
-13,EN_MOTCON
-14,GND
-15,EN_P1
-16,EN_P4
-17,3V3
-18,nBACKUP_EN
-19,SPI3_MOSI
-20,GND
-21,SPI3_MISO
-22,PWR_GOOD_12
-23,SPI3_SCLK
-24,PDU_SPI_CS
-25,GND
-26,THERMAL_SPI_CS
-27,I2C SDA
-28,I2C SCL
-29,FLT_P1
-30,GND
-31,FLT_P2
-32,FLT_P3
-33,FLT_P4
-34,GND
-35,FLT_P5
-36,FLT_MOTCON
-37,PWR_GOOD_5
-38,PWR_GOOD_9
-39,GND
-40,3V3
+pin, func
+1, 3v3
+3, i2c3_sda 
+5, i2c3_scl
+7, NONE
+9, GND
+11, uart7_tx
+13, uart7_rx
+15, en_p2
+17, 3v3
+19, spi3_mosi
+21, spi3_miso
+23, spi3_sclk
+25, gnd
+27, en_p1
+29, en_p3
+31, flt_p4
+33, flt_p3
+35, flt_p2
+37, NONE
+39, gnd
+
+2, 5v
+4, 5v
+6, gnd
+8, NONE
+10, NONE
+12, en_motcon
+14, gnd
+16, NONE
+18, en_p4
+20, gnd
+22, en_p5
+24, pdu_spi_cs
+26, thermal_spi_cs
+28, encoder_spi_cs
+30, gnd
+32, nbackup_en
+34, gnd
+36, pg5
+38, pg9
+40, pg12
+
