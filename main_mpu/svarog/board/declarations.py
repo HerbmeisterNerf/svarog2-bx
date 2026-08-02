@@ -58,17 +58,6 @@ peripheral_requests_lock = threading.Lock()
 DATA_WAIT_TIMEOUT = 5
 
 SPI_INDEX = 3
-SPI_FREQ = 4800000
-SPI_LSBMODE = False
-
-spi = None
-try:
-    spi = mraa.Spi(SPI_INDEX)
-    spi.frequency(SPI_FREQ)
-    spi.lsbmode(SPI_LSBMODE)
-    spi.mode(0)
-except Exception as e:
-    print(f"[declarations] SPI init failed (bus {SPI_INDEX}): {e}")
 
 
 I2C_BUS = "/dev/i2c-3"

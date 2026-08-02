@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 import sys, os, time, threading
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+_HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, _HERE)
+sys.path.insert(0, os.path.join(_HERE, "subcomponents"))
 
 from BOARD_SELECT import is_ebox
 from declarations import HEATER_SENSOR_PAIRS

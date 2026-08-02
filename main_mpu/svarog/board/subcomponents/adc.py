@@ -1,4 +1,8 @@
 import declarations
+from spi import SPI
+
+ADC_FREQ = 4800000
+
 try:
     import LMT87_LookUpTable
     HAS_LMT87 = True
@@ -8,26 +12,22 @@ except ImportError:
 
 class SPI_ADC128S052:
     def __init__(self, cs_pin):
-        self.cs = declarations.mraa.Gpio(cs_pin)
-        self.cs.dir(declarations.mraa.DIR_OUT)
+        self.cs_pin = cs_pin
 
     def read_channel(self, channel):
-        if declarations.spi is None:
+        if not SPI.available:
             return 0.0
         cmd = (channel & 0x07) << 3
         tx = bytearray([cmd, 0x00])
-        self.cs.write(0)
-        rx = declarations.spi.write(tx)
-        self.cs.write(1)
+        rx = SPI.transfer(tx, self.cs_pin, ADC_FREQ, inv=True)
         value = ((rx[0] & 0xFF) << 8) | rx[1]
         voltage = (value * 5) / 4096
         return voltage
 
     def read_all(self):
-        self.cs.write(0)
-        raws = (declarations.spi.write(self.read_tx))
-        self.cs.write(1)
-        # print(raws)
+        if not SPI.available:
+            return [0.0] * (len(self.read_tx) // 2)
+        raws = SPI.transfer(self.read_tx, self.cs_pin, ADC_FREQ, inv=True)
         ret = [
             (int.from_bytes(raws[i:i+2], byteorder="big") & 0x0FFF) * 5/4096
             for i in range(0, len(self.read_tx), 2)

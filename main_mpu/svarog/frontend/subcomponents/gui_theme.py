@@ -1,0 +1,16 @@
+BG      = "#1e1e2e"
+BG2     = "#282a3a"
+BG3     = "#313244"
+FG      = "#cdd6f4"
+FG_DIM  = "#6c7086"
+ACCENT  = "#89b4fa"
+GREEN   = "#a6e3a1"
+RED     = "#f38ba8"
+YELLOW  = "#f9e2af"
+ORANGE  = "#fab387"
+TEAL    = "#94e2d5"
+BORDER  = "#45475a"
+FONT    = ("Courier", 10)
+FONT_B  = ("Courier", 10, "bold")
+FONT_H  = ("Courier", 12, "bold")
+FONT_S  = ("Courier", 9)
