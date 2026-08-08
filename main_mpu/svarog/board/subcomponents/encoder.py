@@ -1,3 +1,5 @@
+import time
+
 import declarations as d
 from spi import SPI
 
@@ -107,3 +109,9 @@ class AS5048A(SPIEncoder):
             "cof": (rx >> 13) & 1,
             "raw_hex": f"{rx:04X}",
         }
+
+if __name__ == "__main__":
+    enc = SPIEncoder(28, 3)
+    while True:
+        time.sleep(1)
+        print(enc.read_all())

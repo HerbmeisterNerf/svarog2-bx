@@ -56,7 +56,7 @@ peripheral_requests_highZ = False
 peripheral_requests_lock = threading.Lock()
 
 DATA_WAIT_TIMEOUT = 5
-
+OPEN_LOOP_WAIT = 5 # time interval between pulses in open loop heater mode
 SPI_INDEX = 3
 
 

@@ -112,8 +112,8 @@ if __name__ == "__main__":
     try:
         while True:
             time.sleep(1)
-            # print("PDU ADC:", pdu_adc.poll())
-            # print("TEMP ADC:", thermal_adc.poll())
-            print(thermal_adc.read_all())
+            print("PDU ADC:", pdu_adc.poll())
+            print("TEMP ADC:", thermal_adc.poll())
+            # print(thermal_adc.read_all())
     except KeyboardInterrupt:
         close_adcs()

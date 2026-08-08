@@ -1,0 +1,2 @@
+scp -r ~/Desktop/svarog/ radxa@192.168.78.2:~/Desktop/
+ssh radxa@192.168.78.2 'echo "is_ebox = False" > ~/Desktop/svarog/board/BOARD_SELECT.py'

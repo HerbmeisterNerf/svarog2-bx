@@ -4,16 +4,17 @@ SVAROG ground-station GUI (Tkinter).
 Pure-GUI assembly only; networking lives in subcomponents/gui_network.py.
 Two panels: EBOX (172.16.18.191) and CUBESAT (192.168.78.2).
 """
-import os, sys
+import os, sys, time, datetime
 import tkinter as tk
-from tkinter import messagebox, simpledialog
+from tkinter import messagebox, simpledialog, ttk
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "subcomponents"))
 
 from gui_theme import (BG, BG2, BG3, FG, FG_DIM, ACCENT, RED, ORANGE,
                        YELLOW, TEAL, FONT, FONT_B, FONT_S)
-from gui_widgets import LED, HeaterIndicator
+from gui_widgets import LED, HeaterIndicator, TelemetryPanel
 from gui_network import BoardConnector
+from gui_video import VideoWindow
 
 
 class BoardPanel(tk.Frame):
@@ -30,9 +31,16 @@ class BoardPanel(tk.Frame):
         self.link.on_status = self._on_status
         self.link.on_async_disconnect = self._on_async_disconnect
 
-        self._build_connection_bar()
+        self.build_compact_header(self).pack(fill="x")
         self._build_controls()
         self.after(100, self._poll_queues)
+
+    def build_compact_header(self, parent):
+        bar = tk.Frame(parent, bg=BG3, padx=6, pady=4)
+        self.compact_led = LED(bar, size=10, on="#a6e3a1", off="#f38ba8")
+        self.compact_led.pack(side="left", padx=(0, 4))
+        self._label(bar, self.name, font=FONT_B, fg=ACCENT, bg=BG3).pack(side="left")
+        return bar
 
     # ── widget helpers ──────────────────────────────────────────────
 
@@ -113,9 +121,9 @@ class BoardPanel(tk.Frame):
             self._heater_indicators = {}
             for display, en_name in self.heaters:
                 row = tk.Frame(ht_f, bg=BG2)
-                row.pack(fill="x", padx=4, pady=1)
-                self._label(row, display, font=FONT_S).pack(side="left")
-                ind = HeaterIndicator(row, size=14)
+                row.pack(fill="x", padx=4, pady=2)
+                self._label(row, display, font=FONT_B).pack(side="left")
+                ind = HeaterIndicator(row, width=64, height=26)
                 ind.pack(side="left", padx=4)
                 self._heater_indicators[en_name] = ind
 
@@ -174,6 +182,11 @@ class BoardPanel(tk.Frame):
             self._entry(r, v, 6).pack(side="left", padx=2)
             self._btn_sm(r, "Set",
                          lambda p=prefix, vv=v: self.link.send(f"{p}{vv.get()}")).pack(side="left", padx=2)
+        mot_presets = tk.Frame(mot, bg=BG2)
+        mot_presets.pack(fill="x", padx=4, pady=(2, 2))
+        for preset in ("TC1", "T0", "T80", "T-80"):
+            self._btn_sm(mot_presets, preset,
+                         lambda p=preset: self.link.send(f"MOTOR {p}")).pack(side="left", padx=1)
         mot_btns = tk.Frame(mot, bg=BG2)
         mot_btns.pack(fill="x", padx=4, pady=(2, 2))
         self._btn_sm(mot_btns, "PING", lambda: self.link.send("MOTOR PING")).pack(side="left", padx=1)
@@ -195,7 +208,7 @@ class BoardPanel(tk.Frame):
         log.pack(fill="both", expand=True)
         self.resp_text = tk.Text(log, font=FONT_S, bg=BG, fg=FG,
                                  insertbackground=FG, relief="flat",
-                                 state="disabled", bd=0, padx=4, pady=2, height=5)
+                                 state="disabled", bd=0, padx=4, pady=2, height=2)
         self.resp_text.tag_config("cmd", foreground=ACCENT)
         self.resp_text.tag_config("ok", foreground="#a6e3a1")
         self.resp_text.tag_config("err", foreground=RED)
@@ -226,7 +239,11 @@ class BoardPanel(tk.Frame):
         else:
             self.status_var.set("Disconnected")
             self.connect_btn.configure(text="Connect", bg=ACCENT)
-        self.led.set(connected)
+        led = getattr(self, "led", None)
+        if led is not None:
+            led.set(connected)
+        if getattr(self, "compact_led", None):
+            self.compact_led.set(connected)
 
     def _on_async_disconnect(self):
         self.after(0, self.link.disconnect)
@@ -257,12 +274,13 @@ class BoardPanel(tk.Frame):
                 continue
             k, v = line.split("=", 1)
             k, v = k.strip(), v.strip()
-            ind = inds.get(k)
-            if ind is not None:
-                try:
-                    ind.set_duty(float(v) / 100.0)
-                except ValueError:
-                    pass
+            for en_name, ind in inds.items():
+                if k == f"{en_name}_DUTY":
+                    try:
+                        ind.set_duty(float(v) / 100.0)
+                    except ValueError:
+                        pass
+                    break
 
     def _log(self, text, tag=None):
         self.resp_text.configure(state="normal")
@@ -277,11 +295,34 @@ class BoardPanel(tk.Frame):
 
 # ═══════════════════════════════════════════════════════════════════════════
 
+class TelemLogger:
+    """Appends every received telemetry block to a per-GUI-startup log file."""
+
+    def __init__(self, base_dir=None):
+        base_dir = base_dir or os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "logs")
+        os.makedirs(base_dir, exist_ok=True)
+        stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.path = os.path.join(base_dir, f"telem_{stamp}.log")
+        self._fh = open(self.path, "a", encoding="utf-8")
+
+    def write(self, board, text):
+        now = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
+        self._fh.write(f"[{now} {board}]\n{text.rstrip()}\n\n")
+        self._fh.flush()
+
+    def close(self):
+        try:
+            self._fh.close()
+        except Exception:
+            pass
+
+
 EBOX_BW     = {"BW_1": "Spinbrake"}
 EBOX_HEATER = [("HEAT_1", "HEAT_1"), ("HEAT_2", "HEAT_2"),
                ("HEAT_3", "HEAT_3"), ("HEAT_4", "HEAT_4")]
 
-CUBESAT_BW     = {"BW_1": "BW Set 1 (P2)", "BW_2": "BW Set 2 (P4)"}
+CUBESAT_BW     = {"BW_2": "BW Set 1 (P2)", "BW_4": "BW Set 2 (P4)"}
 CUBESAT_HEATER = [("HEAT_1", "HEAT_1")]
 
 
@@ -294,6 +335,8 @@ class SvarogGUI:
         self.root.configure(bg=BG)
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(1, weight=1)
+
+        self._logger = TelemLogger()
 
         pw = ttk.PanedWindow(root, orient=tk.HORIZONTAL)
         pw.grid(row=1, column=0, sticky="nsew", padx=2, pady=2)
@@ -308,7 +351,7 @@ class SvarogGUI:
         self.ebox.link.on_telem = self._update_ebox_telem
         pw.add(self.ebox, weight=1)
         # Pane 3: CUBESAT Controls
-        self.cubesat = BoardPanel(pw, "CUBESAT", "192.168.78.2", 8006, 8005,
+        self.cubesat = BoardPanel(pw, "CUBESAT", "172.16.18.191", 8016, 8015,
                                   bw_labels=CUBESAT_BW, heaters=CUBESAT_HEATER)
         self.cubesat.link.on_telem = self._update_cubesat_telem
         pw.add(self.cubesat, weight=1)
@@ -320,6 +363,10 @@ class SvarogGUI:
 
         tmid = tk.Frame(top, bg=BG3)
         tmid.pack(side="left", expand=True, fill="x", padx=8)
+        tk.Button(tmid, text="CAMERA", font=FONT_B,
+                  fg=BG, bg=TEAL, relief="flat", bd=0,
+                  padx=10, cursor="hand2",
+                  command=self._open_camera).pack(side="left", padx=(0, 8))
         tk.Label(tmid, text="Retransmit period (s):", font=FONT_S,
                  fg=FG, bg=BG3).pack(side="left")
         self._trans_var = tk.StringVar(value="2.0")
@@ -333,63 +380,25 @@ class SvarogGUI:
 
         self.cubesat.build_connection_bar(top).pack(side="right")
 
-    def _make_telem_pane(self, pw, title):
-        tf = tk.Frame(pw, bg=BG2, bd=1, relief="groove")
-        pw.add(tf, weight=1)
-        hdr = tk.Frame(tf, bg=BG2)
-        hdr.pack(fill="x")
-        tk.Label(hdr, text=f" {title} ", font=FONT_B,
-                 fg=ACCENT, bg=BG2).pack(side="left")
-        t = tk.Text(tf, font=FONT, bg=BG, fg=FG,
-                    insertbackground=FG, relief="flat",
-                    state="disabled", wrap="word", bd=0, padx=4, pady=2)
-        t.tag_config("section", foreground=YELLOW, font=FONT_B)
-        t.tag_config("key", foreground=TEAL)
-        t.tag_config("val", foreground=FG)
-        t.pack(fill="both", expand=True)
-        return t
+    def _make_telem_pane(self, pw, title, graph_height=80):
+        pane = TelemetryPanel(pw, title, graph_height=graph_height)
+        pw.add(pane, weight=1)
+        return pane
 
     # ── telemetry formatting ───────────────────────────────────────
 
     def _update_ebox_telem(self, text):
         self._update_telem_widget(self.ebox_telem, text)
+        self._logger.write("EBOX", text)
+        self.ebox._update_heater_indicators(text)
 
     def _update_cubesat_telem(self, text):
         self._update_telem_widget(self.cubesat_telem, text)
+        self._logger.write("CUBESAT", text)
+        self.cubesat._update_heater_indicators(text)
 
     def _update_telem_widget(self, widget, text):
-        widget.configure(state="normal")
-        widget.delete("1.0", "end")
-        sections = {}
-        for line in text.split("\n"):
-            if "=" not in line:
-                continue
-            k, v = line.split("=", 1)
-            k, v = k.strip(), v.strip()
-            if k.startswith("TS"):
-                sec = "Timestamp"
-            elif k.startswith("V_SENSE") or k.startswith("ADC_V"):
-                sec = "PDU Power"
-            elif k.startswith("THERMAL"):
-                sec = "Thermal"
-            elif k.startswith("PG_"):
-                sec = "Power Good"
-            elif k.startswith("FLT_"):
-                sec = "Faults"
-            else:
-                sec = "Other"
-            sections.setdefault(sec, []).append((k, v))
-        for sec_name, items in sections.items():
-            widget.insert("end", f" {sec_name}\n", "section")
-            for k, v in items:
-                try:
-                    fv = float(v)
-                    v_str = f"{fv:.3f}" if abs(fv) < 100 else f"{fv:.1f}"
-                except ValueError:
-                    v_str = v
-                widget.insert("end", f"  {k:<26s}", "key")
-                widget.insert("end", f" {v_str}\n", "val")
-        widget.configure(state="disabled")
+        widget.update_telem(text)
 
     def _set_trans_period(self):
         val = self._trans_var.get().strip()
@@ -397,6 +406,17 @@ class SvarogGUI:
         for bp in (self.ebox, self.cubesat):
             if bp.link.connected:
                 bp.link.send(cmd)
+
+    def _open_camera(self):
+        win = getattr(self, "_cam_win", None)
+        if win is not None and win.winfo_exists():
+            win.lift()
+            win.focus_force()
+            return
+        self._cam_win = VideoWindow(self.root, links={
+            "ebox": self.ebox.link,
+            "cubesat": self.cubesat.link,
+        })
 
 
 if __name__ == "__main__":

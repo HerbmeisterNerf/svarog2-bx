@@ -13,4 +13,5 @@ BORDER  = "#45475a"
 FONT    = ("Courier", 10)
 FONT_B  = ("Courier", 10, "bold")
 FONT_H  = ("Courier", 12, "bold")
+FONT_L  = ("Courier", 14, "bold")
 FONT_S  = ("Courier", 9)

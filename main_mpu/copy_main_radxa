@@ -1,1 +1,2 @@
 scp -r svarog/ radxa@172.16.18.191:~/Desktop/
+ssh radxa@172.16.18.191 'source ~/Desktop/svarog/board/copy_main_cs'

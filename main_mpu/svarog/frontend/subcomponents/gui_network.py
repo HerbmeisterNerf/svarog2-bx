@@ -23,16 +23,18 @@ class BoardConnector:
         self.on_status = None             # callable(connected: bool)
         self.on_async_disconnect = None   # callable()  (telem socket dropped)
         self.on_log = None                # callable(text, tag)
+        self.on_resp = None               # callable(text)  (every cmd response)
 
 
-    def connect(self, ip, cmd_port, telem_port):
+    def connect(self, ip, cmd_port, telem_port, silent=False):
         try:
             self.cmd_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.cmd_sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
             self.cmd_sock.settimeout(5)
             self.cmd_sock.connect((ip, cmd_port))
         except Exception as e:
-            messagebox.showerror(f"{self.name} CMD", str(e))
+            if not silent:
+                messagebox.showerror(f"{self.name} CMD", str(e))
             self.cmd_sock = None
             return False
         try:
@@ -111,7 +113,10 @@ class BoardConnector:
 
     def poll(self):
         while not self.resp_queue.empty():
-            self._log(self.resp_queue.get_nowait())
+            resp = self.resp_queue.get_nowait()
+            self._log(resp)
+            if self.on_resp:
+                self.on_resp(resp)
         lines = []
         while not self.telem_queue.empty():
             line = self.telem_queue.get_nowait()

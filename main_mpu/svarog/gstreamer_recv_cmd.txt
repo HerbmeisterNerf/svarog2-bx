@@ -1,0 +1,1 @@
+gst-launch-1.0 rtspsrc latency=0 protocols=tcp buffer-mode=none drop-on-latency=true location=rtsp://172.16.18.191:1234/cam ! rtpjpegdepay ! jpegparse ! avdec_mjpeg ! queue max-size-buffers=1 max-size-bytes=0 max-size-time=0 leaky=downstream ! videoconvert ! videoscale ! video/x-raw,format=RGB,width=640,height=480 ! fdsink fd=1 sync=false

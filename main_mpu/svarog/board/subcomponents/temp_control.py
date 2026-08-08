@@ -1,5 +1,5 @@
 import time, threading
-from declarations import HEATER_SENSOR_PAIRS, PERIPH_BINDINGS
+from declarations import HEATER_SENSOR_PAIRS, PERIPH_BINDINGS, OPEN_LOOP_WAIT
 
 class RoundRobinArbiter:
     def __init__(self, num : int):
@@ -11,7 +11,7 @@ class RoundRobinArbiter:
             return None
         best = None
         for r in requests:
-            if r >= self.last_rq and (best is None or r < best):
+            if r > self.last_rq and (best is None or r < best):
                 best = r
         if best is None:
             best = min(requests)
@@ -24,6 +24,7 @@ class DutyCycleManager:
         self._off_timers = {}
 
     def fire(self, htr, gpio, duty_pct, cycle_len=1.0):
+        print(f"Firing heater {htr} at duty cycle {duty_pct}")
         if gpio is None:
             return
         t = self._off_timers.pop(htr, None)
@@ -56,6 +57,8 @@ class HeaterController(threading.Thread):
         self._duty_mgr = DutyCycleManager()
         self._lock = threading.Lock()
         self._continue = True
+        self.open_loop = {name : False for name in self._names}
+        self.ol_last_actuated = {name : 0 for name in self._names}
 
     def get_data(self):
         with self._lock:
@@ -81,10 +84,14 @@ class HeaterController(threading.Thread):
                 self._last_cycle = cycle
                 snap = self.reader.latest()
                 thermal = snap.thermal if snap and hasattr(snap, "thermal") else {}
+                print(f"Current thermals: {thermal}")
                 with self._lock:
                     setpoints = dict(self._sp)
                 requests = []
                 for i, htr in enumerate(self._names):
+                    if self.open_loop[htr]: # automatically add to arbiter if open loop
+                        requests.append(i)
+                        continue
                     skey = HEATER_SENSOR_PAIRS[htr]
                     temp = thermal.get(skey, 0.0)
                     sp = setpoints.get(htr, 30.0)
@@ -93,7 +100,17 @@ class HeaterController(threading.Thread):
                 chosen = self._arbiter.arbitrate(requests)
                 for i, htr in enumerate(self._names):
                     gpio = PERIPH_BINDINGS.get(htr)
-                    duty = 50.0 if i == chosen else 0.0
+                    # duty = 50.0 if i == chosen else 0.0
+                    if i != chosen:
+                        duty = 0
+                    elif self.open_loop[htr] and time.time() - self.ol_last_actuated[htr] > OPEN_LOOP_WAIT:
+                        # open loop, chosen, and enough time has passed
+                        duty = 30
+                        self.ol_last_actuated[htr] = time.time()
+                    elif not self.open_loop[htr]: # closed loop control scheme, and chosen
+                        duty = 50.0
+                    else:
+                        duty = 0
                     self._duty_mgr.fire(htr, gpio, duty)
                     with self._lock:
                         self._duty[htr] = duty

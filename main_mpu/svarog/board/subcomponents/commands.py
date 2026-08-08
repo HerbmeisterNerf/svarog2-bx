@@ -54,6 +54,29 @@ def _do_bw(parts):
     gpio.write(0)
     return "OK"
 
+def _do_cam(parts):
+    try:
+        from camstream import cam_manager
+    except Exception as e:
+        return f"ERR: camstream unavailable: {e}"
+    if not parts:
+        return "ERR: usage: CAM START|STOP|STATUS|REC|STOPREC [all|<id>]"
+    sub = parts[0].upper()
+    target = parts[1].lower() if len(parts) > 1 else "all"
+    if sub == "STATUS":
+        return cam_manager.status()
+    if sub == "START":
+        return cam_manager.start_all() if target == "all" else cam_manager.start(target)
+    if sub == "STOP":
+        return cam_manager.stop_all() if target == "all" else cam_manager.stop(target)
+    if sub == "REC":
+        return (cam_manager.start_record_all() if target == "all"
+                else cam_manager.start_record(target))
+    if sub == "STOPREC":
+        return (cam_manager.stop_record_all() if target == "all"
+                else cam_manager.stop_record(target))
+    return f"ERR: unknown CAM subcommand: {sub}"
+
 def _do_status(reader, parts):
     if not is_ebox:
         pg, flt = check_status.read_all()
@@ -138,6 +161,8 @@ def handle_command(line, reader):
                 gpio.write(1 if duty > 0 else 0)
                 return "OK"
             return f"ERR: unknown heater: {name}"
+        elif cmd == "CAM":
+            return _do_cam(parts[1:])
         elif cmd == "SET_TRANS_PERIOD":
             if len(parts) < 2:
                 return "ERR: usage: SET_TRANS_PERIOD <seconds>"

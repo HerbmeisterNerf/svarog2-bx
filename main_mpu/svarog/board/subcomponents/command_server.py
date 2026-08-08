@@ -1,4 +1,5 @@
 import socket
+import threading
 from subcomponents.commands import handle_command
 
 
@@ -11,6 +12,33 @@ def _keepalive_sock(sock):
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 3)
     except (AttributeError, OSError):
         pass
+
+
+def _serve_client(client, addr, reader):
+    _keepalive_sock(client)
+    f = client.makefile("rw", buffering=1)
+    try:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            resp = handle_command(line, reader)
+            f.write(resp + "\n")
+            f.flush()
+    except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+        pass
+    except (OSError, ValueError):
+        pass
+    finally:
+        try:
+            f.close()
+        except Exception:
+            pass
+        try:
+            client.close()
+        except Exception:
+            pass
+    print(f"[cmd] client disconnected: {addr}")
 
 
 def cmd_server(port, reader):
@@ -27,29 +55,7 @@ def cmd_server(port, reader):
                 except socket.timeout:
                     continue
                 print(f"[cmd] client connected: {addr}")
-                _keepalive_sock(client)
-                f = client.makefile("rw", buffering=1)
-                try:
-                    for line in f:
-                        line = line.strip()
-                        if not line:
-                            continue
-                        resp = handle_command(line, reader)
-                        f.write(resp + "\n")
-                        f.flush()
-                except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
-                    pass
-                except (OSError, ValueError):
-                    pass
-                finally:
-                    try:
-                        f.close()
-                    except Exception:
-                        pass
-                    try:
-                        client.close()
-                    except Exception:
-                        pass
-                print(f"[cmd] client disconnected: {addr}")
+                threading.Thread(target=_serve_client,
+                                 args=(client, addr, reader), daemon=True).start()
     except OSError as e:
         print(f"[cmd] failed to bind port {port}: {e}")
