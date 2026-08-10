@@ -11,19 +11,22 @@ from tkinter import messagebox, simpledialog, ttk
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "subcomponents"))
 
 from gui_theme import (BG, BG2, BG3, FG, FG_DIM, ACCENT, RED, ORANGE,
-                       YELLOW, TEAL, FONT, FONT_B, FONT_S)
-from gui_widgets import LED, HeaterIndicator, TelemetryPanel
+                       YELLOW, TEAL, BORDER, FONT, FONT_B, FONT_S)
+from gui_widgets import LED, HeaterIndicator, TelemetryPanel, EncoderPanel
 from gui_network import BoardConnector
 from gui_video import VideoWindow
 
 
 class BoardPanel(tk.Frame):
     def __init__(self, parent, name, ip, cmd_port, telem_port,
-                 bw_labels=None, heaters=None):
+                 bw_labels=None, heaters=None, show_encoder=False,
+                 show_motor=False):
         super().__init__(parent, bg=BG, bd=1, relief="groove")
         self.name = name
         self.bw_labels = bw_labels or {}
         self.heaters = heaters or []
+        self.show_encoder = show_encoder
+        self.show_motor = show_motor
 
         self.link = BoardConnector(name, ip, cmd_port, telem_port)
         self.link.on_telem = self._on_telem
@@ -192,6 +195,30 @@ class BoardPanel(tk.Frame):
         self._btn_sm(mot_btns, "PING", lambda: self.link.send("MOTOR PING")).pack(side="left", padx=1)
         self._btn_sm(mot_btns, "RAW", self._raw_motor).pack(side="left", padx=1)
 
+        # ── Encoder / Motor angle (cubesat: both, ebox: motor) ─────
+        if self.show_encoder or self.show_motor:
+            ang_f = tk.LabelFrame(ctrl, text=" Angles ", font=FONT_B,
+                                  fg=FG, bg=BG2, bd=1, relief="groove")
+            ang_f.pack(fill="x", pady=(0, 4))
+            row = tk.Frame(ang_f, bg=BG2)
+            row.pack(fill="x", padx=6, pady=4)
+            if self.show_encoder:
+                self.encoder_panel = EncoderPanel(
+                    row, title="Encoder", dial_size=110,
+                    on_reset=lambda: self.link.send("ENCODER_RESET"),
+                    show_autostop=True,
+                    on_autostop=lambda on: self.link.send(
+                        f"AUTOSTOP {'ON' if on else 'OFF'}"))
+                self.encoder_panel.pack(side="left")
+            if self.show_encoder and self.show_motor:
+                sep = tk.Frame(row, width=2, bg=BORDER)
+                sep.pack(side="left", fill="y", padx=8)
+            if self.show_motor:
+                self.motor_panel = EncoderPanel(
+                    row, title="Motor", dial_size=110, show_dial=not self.show_encoder,
+                    color=TEAL)
+                self.motor_panel.pack(side="left", padx=(8, 0) if self.show_encoder else 0)
+
         # ── Command entry ──────────────────────────────────────────
         cmd_f = tk.Frame(ctrl, bg=BG2)
         cmd_f.pack(fill="x", pady=(0, 4))
@@ -282,6 +309,46 @@ class BoardPanel(tk.Frame):
                         pass
                     break
 
+    def _update_encoder(self, text):
+        panel = getattr(self, "encoder_panel", None)
+        if panel is None:
+            return
+        angle = accum = None
+        for line in text.split("\n"):
+            if "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            k, v = k.strip(), v.strip()
+            try:
+                if k == "ENC_ANGLE":
+                    angle = float(v)
+                elif k == "ENC_ACCUM":
+                    accum = float(v)
+                elif k == "AUTO_STOP":
+                    panel.set_autostop(v.strip() in ("1", "ON", "True"))
+            except ValueError:
+                pass
+        panel.update(angle=angle, accum=accum)
+
+    def _update_motor(self, text):
+        panel = getattr(self, "motor_panel", None)
+        if panel is None:
+            return
+        angle = accum = None
+        for line in text.split("\n"):
+            if "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            k, v = k.strip(), v.strip()
+            try:
+                if k == "MOTOR_ANGLE":
+                    angle = float(v)
+                elif k == "MOTOR_ACCUM":
+                    accum = float(v)
+            except ValueError:
+                pass
+        panel.update(angle=angle, accum=accum)
+
     def _log(self, text, tag=None):
         self.resp_text.configure(state="normal")
         self.resp_text.insert("end", text + "\n", tag)
@@ -347,12 +414,14 @@ class SvarogGUI:
         self.cubesat_telem = self._make_telem_pane(pw, "CUBESAT Telemetry")
         # Pane 2: EBOX Controls
         self.ebox = BoardPanel(pw, "EBOX", "172.16.18.191", 8006, 8005,
-                               bw_labels=EBOX_BW, heaters=EBOX_HEATER)
+                               bw_labels=EBOX_BW, heaters=EBOX_HEATER,
+                               show_motor=True)
         self.ebox.link.on_telem = self._update_ebox_telem
         pw.add(self.ebox, weight=1)
         # Pane 3: CUBESAT Controls
         self.cubesat = BoardPanel(pw, "CUBESAT", "172.16.18.191", 8016, 8015,
-                                  bw_labels=CUBESAT_BW, heaters=CUBESAT_HEATER)
+                                  bw_labels=CUBESAT_BW, heaters=CUBESAT_HEATER,
+                                  show_encoder=True, show_motor=True)
         self.cubesat.link.on_telem = self._update_cubesat_telem
         pw.add(self.cubesat, weight=1)
 
@@ -391,11 +460,14 @@ class SvarogGUI:
         self._update_telem_widget(self.ebox_telem, text)
         self._logger.write("EBOX", text)
         self.ebox._update_heater_indicators(text)
+        self.ebox._update_motor(text)
 
     def _update_cubesat_telem(self, text):
         self._update_telem_widget(self.cubesat_telem, text)
         self._logger.write("CUBESAT", text)
         self.cubesat._update_heater_indicators(text)
+        self.cubesat._update_encoder(text)
+        self.cubesat._update_motor(text)
 
     def _update_telem_widget(self, widget, text):
         widget.update_telem(text)

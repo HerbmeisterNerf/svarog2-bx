@@ -52,7 +52,7 @@ class HeaterController(threading.Thread):
         self.reader = reader
         self._names = list(HEATER_SENSOR_PAIRS.keys())
         self._duty = {h: 0.0 for h in self._names}
-        self._sp   = {h: 30.0 for h in self._names}
+        self._sp   = {h: 60.0 for h in self._names}
         self._arbiter = RoundRobinArbiter(len(self._names))
         self._duty_mgr = DutyCycleManager()
         self._lock = threading.Lock()
@@ -105,10 +105,10 @@ class HeaterController(threading.Thread):
                         duty = 0
                     elif self.open_loop[htr] and time.time() - self.ol_last_actuated[htr] > OPEN_LOOP_WAIT:
                         # open loop, chosen, and enough time has passed
-                        duty = 30
+                        duty = 10
                         self.ol_last_actuated[htr] = time.time()
                     elif not self.open_loop[htr]: # closed loop control scheme, and chosen
-                        duty = 50.0
+                        duty = 20
                     else:
                         duty = 0
                     self._duty_mgr.fire(htr, gpio, duty)

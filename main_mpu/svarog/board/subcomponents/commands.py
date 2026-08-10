@@ -21,6 +21,12 @@ def _do_motor(parts):
         val = sub[1:] if len(sub) > 1 else (parts[2] if len(parts) > 2 else None)
         if val is None:
             return "ERR: MOTOR T<val>"
+        try:
+            _st.motor_speed = float(val)
+        except ValueError:
+            pass
+        if _st.auto_stop:
+            _st.auto_stop.rearm()
         return motor.set_speed(val) or "OK"
     elif sub.startswith("C"):
         val = sub[1:] if len(sub) > 1 else (parts[2] if len(parts) > 2 else None)
@@ -144,6 +150,28 @@ def handle_command(line, reader):
                 return "\n".join(f"{k}={v}" for k, v in data.items())
             except Exception as e:
                 return f"ERR: {e}"
+        elif cmd == "ENCODER_RESET":
+            if is_ebox:
+                return "ERR: no encoder on ebox"
+            if not _st.enc_reader:
+                return "ERR: encoder not running"
+            _st.enc_reader.reset_accum()
+            return "OK"
+        elif cmd == "AUTOSTOP":
+            if is_ebox:
+                return "ERR: no auto-stop on ebox"
+            if len(parts) < 2:
+                return f"AUTO_STOP={1 if _st.auto_stop_enabled else 0}"
+            val = parts[1].upper()
+            if val == "ON" or val == "1":
+                _st.auto_stop_enabled = True
+                if _st.auto_stop:
+                    _st.auto_stop.rearm()
+                return "OK AUTO_STOP=1"
+            if val == "OFF" or val == "0":
+                _st.auto_stop_enabled = False
+                return "OK AUTO_STOP=0"
+            return "ERR: AUTOSTOP <ON|OFF>"
         elif cmd == "I2C":
             try:
                 from sensor import scan

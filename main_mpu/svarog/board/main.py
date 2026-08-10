@@ -12,7 +12,7 @@ from subcomponents.sensor_reader import SensorReader
 from subcomponents.temp_control import HeaterController
 from subcomponents.send_telem import telem_server
 from subcomponents.command_server import cmd_server
-from subcomponents.motor import setup as setup_motor
+from subcomponents.motor import setup as setup_motor, MotorReader
 
 def main(telem_port=8005, cmd_port=8006, sensor_interval=2.0):
     role = "EBOX" if is_ebox else "CUBESAT"
@@ -33,14 +33,30 @@ def main(telem_port=8005, cmd_port=8006, sensor_interval=2.0):
     t_telem.start()
     t_cmd.start()
 
+    _st.motor_reader = MotorReader()
+    _st.motor_reader.start()
+    print("[svarog] MotorReader started")
+
     if is_ebox:
         setup_motor()
+    else:
+        from subcomponents.encoder_new import EncoderReader, AutoStop
+        _st.enc_reader = EncoderReader()
+        _st.enc_reader.start()
+        print("[svarog] EncoderReader started (cubesat)")
+        _st.auto_stop = AutoStop(_st.enc_reader)
+        _st.auto_stop.start()
+        print("[svarog] AutoStop started (cubesat)")
 
     try:
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
         print("\n[svarog] shutting down...")
+        if _st.auto_stop:
+            _st.auto_stop.stop()
+        if _st.enc_reader:
+            _st.enc_reader.stop()
         if _hc:
             _hc.stop()
             _hc.join(timeout=3)

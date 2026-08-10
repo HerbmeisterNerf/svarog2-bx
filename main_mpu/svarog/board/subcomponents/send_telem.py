@@ -27,6 +27,17 @@ def snap_to_text(snap):
             temp = snap.thermal.get(skey, 0.0) if skey else 0.0
             lines.append(f"{name}_TEMP={temp}")
             lines.append(f"{name}_DUTY={duties.get(name, 0)}")
+    if _st.enc_reader:
+        enc = _st.enc_reader.latest()
+        for k, v in enc.items():
+            if v is not None:
+                lines.append(f"{k}={v}")
+        lines.append(f"AUTO_STOP={1 if _st.auto_stop_enabled else 0}")
+    if _st.motor_reader:
+        mtr = _st.motor_reader.latest()
+        for k, v in mtr.items():
+            if v is not None:
+                lines.append(f"{k}={v}")
     return "\n".join(lines) + "\n"
 
 class TelemThread(threading.Thread):
