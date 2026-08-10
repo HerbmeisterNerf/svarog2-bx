@@ -41,12 +41,12 @@ THERMAL_LABELS = [
 ]
 
 HEATER_SENSOR_PAIRS = {
-    "HEAT_1": THERMAL_LABELS[0],
-    "HEAT_2": THERMAL_LABELS[1],
-    "HEAT_3": THERMAL_LABELS[2],
-    "HEAT_4": THERMAL_LABELS[3],
+    "HEAT_1": "THERMAL_SENS_OUT_1",
+    "HEAT_2": "THERMAL_SENS_OUT_3", # cam3
+    "HEAT_3": "THERMAL_SENS_OUT_4",
+    "HEAT_4": "THERMAL_SENS_OUT_5",
 } if is_ebox else {
-    "HEAT_1": THERMAL_LABELS[0],
+    "HEAT_1": "THERMAL_SENS_OUT_1",
 }
 
 # PERIPH_BINDINGS is assigned below, after GPIO objects exist

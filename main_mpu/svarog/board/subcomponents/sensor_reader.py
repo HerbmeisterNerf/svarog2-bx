@@ -48,7 +48,7 @@ class SensorReader(threading.Thread):
                 except Exception:
                     pdu = {}
                 try:
-                    thermal = self.thermal_adc.poll_all()
+                    thermal = self.thermal_adc.poll()
                 except Exception:
                     thermal = {}
             else:
