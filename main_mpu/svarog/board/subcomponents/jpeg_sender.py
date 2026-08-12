@@ -22,10 +22,13 @@ Usage (on the board):
     python3 jpeg_sender.py --device /dev/video0 --port 9000 --tag cam1
 """
 import argparse
+import array
+import fcntl
 import os
 import socket
 import struct
 import subprocess
+import termios
 import time
 
 import mjpeg_avi
@@ -38,6 +41,24 @@ REC_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
     "cam_recordings", "jpeg",
 )
+
+# Per-connection TCP tuning: a small send buffer stops the kernel from
+# hoarding frames when a client is slow, and every FLUSH_EVERY frames we drop
+# the client if its unsent backlog (SIOCOUTQ) is still large -- the receiver
+# reconnects and gets fresh frames instead of a growing lag pile-up.
+SNDBUF = 32 * 1024
+FLUSH_EVERY = 5
+FLUSH_TX_BYTES = 32 * 1024
+
+
+def _tx_queued(sock):
+    """Bytes sitting unsent in the kernel TCP send queue for this socket."""
+    try:
+        buf = array.array("I", [0])
+        fcntl.ioctl(sock.fileno(), termios.SIOCOUTQ, buf)
+        return buf[0]
+    except Exception:
+        return 0
 
 
 def _set_cpu_profile():
@@ -157,6 +178,7 @@ def main():
     current = None   # the client we are streaming to (newest wins)
     rec_writer = None
     rec_path = None
+    sent_frames = 0
     try:
         while True:
             # pick up any new client; if one connects, drop the previous one
@@ -176,6 +198,11 @@ def main():
                         pass
                 current = newconn
                 current.settimeout(10.0)
+                try:
+                    current.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, SNDBUF)
+                    current.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                except OSError:
+                    pass
                 print(f"[jpeg_sender:{args.tag}] client connected: {addr}",
                       flush=True)
 
@@ -195,6 +222,18 @@ def main():
                 if current is not None:
                     try:
                         current.sendall(HDR.pack(len(data)) + data)
+                        sent_frames += 1
+                        if sent_frames % FLUSH_EVERY == 0:
+                            txq = _tx_queued(current)
+                            if txq > FLUSH_TX_BYTES:
+                                print(f"[jpeg_sender:{args.tag}] tx backlog "
+                                      f"{txq}B > {FLUSH_TX_BYTES}B, dropping "
+                                      "client to flush", flush=True)
+                                try:
+                                    current.close()
+                                except OSError:
+                                    pass
+                                current = None
                     except (socket.timeout, ConnectionError, OSError):
                         print(f"[jpeg_sender:{args.tag}] client gone",
                               flush=True)

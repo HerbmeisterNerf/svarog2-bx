@@ -88,7 +88,10 @@ class VideoWindow(tk.Toplevel):
         self._img_queue = queue.Queue(maxsize=2)
         self._status_queue = queue.Queue()
         self._ui_queue = queue.Queue()
-        self._stop = threading.Event()
+        self._stop = threading.Event()      # window quit
+        self._stream_stop = threading.Event()   # current stream thread
+        self._gen = 0                       # bumped on every source switch
+        self._thread = None
         self._thread = None
 
         self._photo = None
@@ -234,7 +237,15 @@ class VideoWindow(tk.Toplevel):
         return s, 9000
 
     def _start_stream(self, cam=None):
-        self._stop.set()
+        # stop the previous stream thread and invalidate any in-flight frames
+        self._stream_stop.set()
+        self._gen += 1
+        self._img_queue.queue.clear()
+        self._last_t = None
+        self._arrivals = []
+        self._jpeg_size = 0
+        self._jpeg_dims = None
+
         if cam and cam in CAM_MAP:
             cfg = CAM_MAP[cam]
             host, port = cfg["host"], cfg["port"]
@@ -243,30 +254,33 @@ class VideoWindow(tk.Toplevel):
             self._cur_cam = cam or None
             host, port = self._parse_source()
         self._render_cam_selector()
-        self._stop = threading.Event()
-        self._thread = threading.Thread(target=self._stream_loop,
-                                        args=(host, port, cam), daemon=True)
+
+        # fresh per-stream stop event + generation so this thread is the only
+        # one whose frames can ever reach the screen
+        self._stream_stop = threading.Event()
+        self._thread = threading.Thread(
+            target=self._stream_loop,
+            args=(host, port, cam, self._stream_stop, self._gen), daemon=True)
         self._thread.start()
         self.status_var.set(f"connecting to {host}:{port}...")
 
     def _restart_stream(self):
-        self._stop.set()
         self._img_queue.queue.clear()
         self._start_stream(cam=None)
         self._sync_bg_recorders()
 
-    def _stream_loop(self, host, port, cam):
-        while not self._stop.is_set():
+    def _stream_loop(self, host, port, cam, stop, gen):
+        while not stop.is_set():
             try:
                 sock = socket.create_connection((host, port), timeout=5)
             except OSError as e:
                 self._status_queue.put(f"no connection ({e})")
-                self._stop.wait(2)
+                stop.wait(2)
                 continue
             self._status_queue.put(f"connected to {host}:{port}")
             try:
                 sock.settimeout(10.0)
-                self._read_stream(sock, cam)
+                self._read_stream(sock, cam, stop, gen)
             except (OSError, EOFError, ValueError) as e:
                 self._status_queue.put(f"disconnected ({e})")
             finally:
@@ -274,15 +288,17 @@ class VideoWindow(tk.Toplevel):
                     sock.close()
                 except OSError:
                     pass
-                self._stop.wait(2)
+                stop.wait(2)
         self._status_queue.put("stream stopped")
 
-    def _read_stream(self, sock, cam):
+    def _read_stream(self, sock, cam, stop, gen):
         read_frame = _jpeg_proto_module().read_frame
-        while not self._stop.is_set():
-            self._handle_frame(read_frame(sock), cam)
+        while not stop.is_set():
+            self._handle_frame(read_frame(sock), cam, gen)
 
-    def _handle_frame(self, jpeg, cam):
+    def _handle_frame(self, jpeg, cam, gen):
+        if gen != self._gen:
+            return        # stale frame from a stream we switched away from
         now = time.monotonic()
         self._jpeg_size = len(jpeg)
         self._arrivals.append(now)
@@ -502,6 +518,7 @@ class VideoWindow(tk.Toplevel):
 
     def _on_close(self):
         self._stop.set()
+        self._stream_stop.set()
         self._stop_gui_rec()
         for link in self.links.values():
             if link and getattr(link, "on_resp", None):
