@@ -94,6 +94,12 @@ class BoardPanel(tk.Frame):
         self.status_var = tk.StringVar(value="Disconnected")
         sl = self._label(conn, textvariable=self.status_var, fg=RED, font=FONT_S)
         sl.pack(side="left")
+        self._auto_reconnect_var = tk.BooleanVar(value=False)
+        tk.Checkbutton(conn, text="Auto-reconnect", variable=self._auto_reconnect_var,
+                       font=FONT_S, fg=FG, bg=BG3, selectcolor=BG3,
+                       activebackground=BG3, activeforeground=FG,
+                       highlightthickness=0, bd=0,
+                       command=self._toggle_auto_reconnect).pack(side="left", padx=(4, 2))
         self._btn_sm(conn, "STATUS", lambda: self.link.send("STATUS"),
                      bg=ACCENT, fg=BG).pack(side="left", padx=2)
         return conn
@@ -122,6 +128,8 @@ class BoardPanel(tk.Frame):
                                  fg=FG, bg=BG2, bd=1, relief="groove")
             ht_f.pack(fill="x", pady=(0, 4))
             self._heater_indicators = {}
+            self._heater_sp_vars = {}
+            self._heater_sp_entries = {}
             for display, en_name in self.heaters:
                 row = tk.Frame(ht_f, bg=BG2)
                 row.pack(fill="x", padx=4, pady=2)
@@ -129,6 +137,16 @@ class BoardPanel(tk.Frame):
                 ind = HeaterIndicator(row, width=64, height=26)
                 ind.pack(side="left", padx=4)
                 self._heater_indicators[en_name] = ind
+                self._label(row, "SP:", font=FONT_S).pack(side="left", padx=(8, 2))
+                sp_var = tk.StringVar(value="-20")
+                sp_entry = self._entry(row, sp_var, 5)
+                sp_entry.pack(side="left", padx=1)
+                self._heater_sp_vars[en_name] = sp_var
+                self._heater_sp_entries[en_name] = sp_entry
+                self._btn_sm(row, "Set",
+                             lambda n=en_name, v=sp_var: self.link.send(
+                                 f"HEATER_SETPOINT {n} {v.get()}"),
+                             bg=ACCENT, fg=BG).pack(side="left", padx=2)
 
         # ── Advanced toggle ────────────────────────────────────────
         self._advanced_open = False
@@ -155,16 +173,6 @@ class BoardPanel(tk.Frame):
                 self._label(r, display, font=FONT_S, bg=BG3).pack(side="left")
                 self._btn_sm(r, "Pulse",
                              lambda n=en_name: self.link.send(f"BW {n} {self.bw_ms_var.get()}")).pack(side="left", padx=2)
-                self._btn_sm(r, "ON", lambda n=en_name: self.link.send(f"EN {n} 1")).pack(side="left", padx=1)
-                self._btn_sm(r, "OFF", lambda n=en_name: self.link.send(f"EN {n} 0")).pack(side="left", padx=1)
-
-        if self.heaters:
-            self._label(self._advanced_frame, " Heater override ", font=FONT_S,
-                        bg=BG3).pack(padx=4, pady=(4, 0))
-            for display, en_name in self.heaters:
-                r = tk.Frame(self._advanced_frame, bg=BG3)
-                r.pack(fill="x", padx=4, pady=1)
-                self._label(r, display, font=FONT_S, bg=BG3).pack(side="left")
                 self._btn_sm(r, "ON", lambda n=en_name: self.link.send(f"EN {n} 1")).pack(side="left", padx=1)
                 self._btn_sm(r, "OFF", lambda n=en_name: self.link.send(f"EN {n} 0")).pack(side="left", padx=1)
 
@@ -255,9 +263,19 @@ class BoardPanel(tk.Frame):
     # ── connection (GUI mirrors BoardConnector state) ───────────────
 
     def _toggle_connect(self):
-        self.link.toggle_connect(self.ip_var.get(),
-                                 int(self.cmd_port_var.get()),
-                                 int(self.telem_port_var.get()))
+        if self.link.connected:
+            self._auto_reconnect_var.set(False)
+            self.link.set_auto_reconnect(False)
+            self.link.disconnect()
+        else:
+            self.link.toggle_connect(self.ip_var.get(),
+                                     int(self.cmd_port_var.get()),
+                                     int(self.telem_port_var.get()))
+            if self._auto_reconnect_var.get():
+                self.link.set_auto_reconnect(True)
+
+    def _toggle_auto_reconnect(self):
+        self.link.set_auto_reconnect(self._auto_reconnect_var.get())
 
     def _on_status(self, connected):
         if connected:
@@ -273,7 +291,7 @@ class BoardPanel(tk.Frame):
             self.compact_led.set(connected)
 
     def _on_async_disconnect(self):
-        self.after(0, self.link.disconnect)
+        self.link.disconnect()
 
     # ── commands ───────────────────────────────────────────────────
 
@@ -296,18 +314,27 @@ class BoardPanel(tk.Frame):
 
     def _update_heater_indicators(self, text):
         inds = getattr(self, "_heater_indicators", {})
+        sp_vars = getattr(self, "_heater_sp_vars", {})
+        sp_entries = getattr(self, "_heater_sp_entries", {})
         for line in text.split("\n"):
             if "=" not in line:
                 continue
             k, v = line.split("=", 1)
             k, v = k.strip(), v.strip()
-            for en_name, ind in inds.items():
-                if k == f"{en_name}_DUTY":
+            if k.endswith("_DUTY"):
+                ind = inds.get(k[:-len("_DUTY")])
+                if ind is not None:
                     try:
                         ind.set_duty(float(v) / 100.0)
                     except ValueError:
                         pass
-                    break
+            elif k.endswith("_SP"):
+                en_name = k[:-len("_SP")]
+                var = sp_vars.get(en_name)
+                entry = sp_entries.get(en_name)
+                if var is not None and entry is not None:
+                    if entry.focus_get() is not entry:
+                        var.set(v)
 
     def _update_encoder(self, text):
         panel = getattr(self, "encoder_panel", None)

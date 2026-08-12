@@ -22,11 +22,14 @@ def snap_to_text(snap):
         lines.append(f"{k}={v}")
     if _st.heater_ctrl:
         duties = _st.heater_ctrl.get_data()
+        setpoints = _st.heater_ctrl.get_setpoints()
         for name in duties:
             skey = HEATER_SENSOR_PAIRS.get(name)
             temp = snap.thermal.get(skey, 0.0) if skey else 0.0
             lines.append(f"{name}_TEMP={temp}")
             lines.append(f"{name}_DUTY={duties.get(name, 0)}")
+            if name in setpoints:
+                lines.append(f"{name}_SP={setpoints[name]}")
     if _st.enc_reader:
         enc = _st.enc_reader.latest()
         for k, v in enc.items():

@@ -1,3 +1,5 @@
+import os
+import subprocess
 import time
 from BOARD_SELECT import is_ebox
 from declarations import PERIPH_BINDINGS
@@ -55,9 +57,16 @@ def _do_bw(parts):
     if gpio is None:
         return f"ERR: unknown peripheral: {parts[1]}"
     ms = int(parts[2]) if len(parts) > 2 else 1500
-    gpio.write(1)
-    time.sleep(ms / 1000.0)
-    gpio.write(0)
+    # turn off heaters to limit current
+    _st.heater_ctrl._continue = False
+    try:
+        time.sleep(0.5)
+        gpio.write(1)
+        time.sleep(ms / 1000.0)
+        gpio.write(0)
+        time.sleep(0.5)
+    finally:
+        _st.heater_ctrl._continue = True
     return "OK"
 
 def _do_cam(parts):
@@ -82,6 +91,36 @@ def _do_cam(parts):
         return (cam_manager.stop_record_all() if target == "all"
                 else cam_manager.stop_record(target))
     return f"ERR: unknown CAM subcommand: {sub}"
+
+JPEG_REC_FLAG = "/tmp/svarog_jpeg_rec"
+
+def _jpeg_sender_alive():
+    try:
+        out = subprocess.run(["pgrep", "-f", r"jpeg_sender\.py --device"],
+                             capture_output=True, text=True, timeout=5)
+        return bool(out.stdout.strip())
+    except Exception:
+        return False
+
+def _do_jpeg_rec(parts):
+    if not parts:
+        rec = 1 if os.path.exists(JPEG_REC_FLAG) else 0
+        return (f"JPEG_REC={rec} SENDER={1 if _jpeg_sender_alive() else 0}")
+    sub = parts[0].upper()
+    if sub in ("ON", "1"):
+        try:
+            with open(JPEG_REC_FLAG, "w") as f:
+                f.write(str(int(time.time())))
+        except OSError as e:
+            return f"ERR: {e}"
+        return "OK JPEG_REC=1"
+    if sub in ("OFF", "0"):
+        try:
+            os.remove(JPEG_REC_FLAG)
+        except OSError:
+            pass
+        return "OK JPEG_REC=0"
+    return "ERR: usage: JPEGREC <ON|OFF>"
 
 def _do_status(reader, parts):
     if not is_ebox:
@@ -191,6 +230,8 @@ def handle_command(line, reader):
             return f"ERR: unknown heater: {name}"
         elif cmd == "CAM":
             return _do_cam(parts[1:])
+        elif cmd == "JPEGREC":
+            return _do_jpeg_rec(parts[1:])
         elif cmd == "SET_TRANS_PERIOD":
             if len(parts) < 2:
                 return "ERR: usage: SET_TRANS_PERIOD <seconds>"

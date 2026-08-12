@@ -1,4 +1,5 @@
 import time, threading
+from BOARD_SELECT import is_ebox
 from declarations import HEATER_SENSOR_PAIRS, PERIPH_BINDINGS, OPEN_LOOP_WAIT
 
 class RoundRobinArbiter:
@@ -52,17 +53,22 @@ class HeaterController(threading.Thread):
         self.reader = reader
         self._names = list(HEATER_SENSOR_PAIRS.keys())
         self._duty = {h: 0.0 for h in self._names}
-        self._sp   = {h: 60.0 for h in self._names}
+        self._sp   = {h: -20.0 for h in self._names}
         self._arbiter = RoundRobinArbiter(len(self._names))
         self._duty_mgr = DutyCycleManager()
         self._lock = threading.Lock()
         self._continue = True
-        self.open_loop = {name : False for name in self._names}
+        # cubesat has no ADC so it runs open loop; ebox runs closed loop
+        self.open_loop = {name: not is_ebox for name in self._names}
         self.ol_last_actuated = {name : 0 for name in self._names}
 
     def get_data(self):
         with self._lock:
             return dict(self._duty)
+
+    def get_setpoints(self):
+        with self._lock:
+            return dict(self._sp)
 
     def set_setpoint(self, name, value):
         with self._lock:
@@ -94,7 +100,7 @@ class HeaterController(threading.Thread):
                         continue
                     skey = HEATER_SENSOR_PAIRS[htr]
                     temp = thermal.get(skey, 0.0)
-                    sp = setpoints.get(htr, 30.0)
+                    sp = setpoints.get(htr, -20.0)
                     if temp < (sp - 0.5):
                         requests.append(i)
                 chosen = self._arbiter.arbitrate(requests)
@@ -108,7 +114,7 @@ class HeaterController(threading.Thread):
                         duty = 10
                         self.ol_last_actuated[htr] = time.time()
                     elif not self.open_loop[htr]: # closed loop control scheme, and chosen
-                        duty = 20
+                        duty = 10
                     else:
                         duty = 0
                     self._duty_mgr.fire(htr, gpio, duty)

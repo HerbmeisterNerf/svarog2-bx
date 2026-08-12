@@ -1,2 +1,30 @@
-scp -r svarog/ radxa@172.16.18.191:~/Desktop/
-ssh radxa@172.16.18.191 'source ~/Desktop/svarog/board/copy_main_cs'
+#!/bin/bash
+# Deploy svarog/board to the EBOX (172.16.18.191) and then push the same
+# files to the CUBESAT (192.168.78.2) through the EBOX (2-hop).
+# Only *.py files under board/ (and board/subcomponents/) are copied.
+# set -euo pipefail
+cd "$(dirname "$0")"
+
+EB=radxa@172.16.18.191
+CUBE=radxa@192.168.78.2
+# literal ~ so the REMOTE shell expands it to the radxa user's home
+BDIR='~/Desktop/svarog/board'
+
+# The EBOX -> CUBESAT hop runs inside an ssh session, so the outer ssh must
+# use -t to give the inner ssh a pty to prompt for the CUBESAT password.
+CUBE_OPTS="-o StrictHostKeyChecking=accept-new"
+
+echo "[1/4] ensure EBOX directory exists"
+ssh "$EB" "mkdir -p $BDIR/subcomponents"
+
+echo "[2/4] copy board .py files to EBOX"
+scp svarog/board/*.py "$EB:$BDIR/"
+scp svarog/board/subcomponents/*.py "$EB:$BDIR/subcomponents/"
+
+echo "[3/4] copy board .py files EBOX -> CUBESAT"
+ssh -t "$EB" "cd $BDIR && find . -name '*.py' | tar -czf - -T - | ssh $CUBE_OPTS $CUBE 'mkdir -p $BDIR/subcomponents && tar -C $BDIR -xzf -'"
+
+echo "[4/4] set CUBESAT BOARD_SELECT to is_ebox = False"
+ssh -t "$EB" "ssh $CUBE_OPTS $CUBE 'echo \"is_ebox = False\" > $BDIR/BOARD_SELECT.py'"
+
+echo "done"

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import subprocess
 import sys, os, time, threading
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -13,6 +14,87 @@ from subcomponents.temp_control import HeaterController
 from subcomponents.send_telem import telem_server
 from subcomponents.command_server import cmd_server
 from subcomponents.motor import setup as setup_motor, MotorReader
+
+
+def _cam_sender_spec():
+    """(device, port, tag, src_fps) tuples for this board's JPEG senders."""
+    if is_ebox:
+        return [
+            ("/dev/video0", 9000, "cam1", 120),
+            ("/dev/video2", 9001, "cam2", 30),
+            ("/dev/video4", 9002, "cam3", 120),
+            ("/dev/video6", 9003, "cam4", 30),
+        ]
+    return [("/dev/video0", 9000, "cubesat", 120)]
+
+
+def _spawn_sender(dev, port, tag, src_fps):
+    log = open(f"/tmp/jpeg_sender_{tag}.log", "ab")
+    p = subprocess.Popen(
+        [sys.executable, os.path.join(_HERE, "subcomponents", "jpeg_sender.py"),
+         "--device", dev, "--port", str(port), "--tag", tag,
+         "--src-fps", str(src_fps)],
+        stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT)
+    print(f"[svarog] cam sender {tag} spawned pid={p.pid} {dev}:{port} "
+          f"@{src_fps}fps", flush=True)
+    return {"dev": dev, "port": port, "tag": tag, "src_fps": src_fps,
+            "proc": p, "log": log, "last_start": time.time()}
+
+
+def _start_cam_senders():
+    # clear any sender left over from a previous main.py instance
+    try:
+        subprocess.run(["pkill", "-f", r"jpeg_sender\.py --device"],
+                       capture_output=True, timeout=5)
+    except Exception:
+        pass
+    time.sleep(1)
+    senders = [_spawn_sender(*spec) for spec in _cam_sender_spec()]
+    stop_evt = threading.Event()
+
+    def _supervise():
+        while not stop_evt.is_set():
+            for s in senders:
+                if s["proc"].poll() is not None:
+                    if time.time() - s["last_start"] > 10.0:
+                        try:
+                            s["log"].write(
+                                f"[main] {s['tag']} exited rc={s['proc'].returncode}, "
+                                "restarting\n".encode())
+                            s["log"].flush()
+                        except Exception:
+                            pass
+                        try:
+                            s["log"].close()
+                        except Exception:
+                            pass
+                        s.update(_spawn_sender(s["dev"], s["port"], s["tag"], s["src_fps"]))
+            stop_evt.wait(2.0)
+
+    t = threading.Thread(target=_supervise, daemon=True)
+    t.start()
+    return senders, stop_evt
+
+
+def _stop_cam_senders(senders):
+    for s in senders:
+        try:
+            s["proc"].terminate()
+        except Exception:
+            pass
+    for s in senders:
+        try:
+            s["proc"].wait(timeout=3)
+        except Exception:
+            try:
+                s["proc"].kill()
+            except Exception:
+                pass
+        try:
+            s["log"].close()
+        except Exception:
+            pass
+
 
 def main(telem_port=8005, cmd_port=8006, sensor_interval=2.0):
     role = "EBOX" if is_ebox else "CUBESAT"
@@ -48,6 +130,9 @@ def main(telem_port=8005, cmd_port=8006, sensor_interval=2.0):
         _st.auto_stop.start()
         print("[svarog] AutoStop started (cubesat)")
 
+    cam_senders, _cam_stop = _start_cam_senders()
+    print("[svarog] cam senders started:", [s["tag"] for s in cam_senders])
+
     try:
         while True:
             time.sleep(1)
@@ -63,6 +148,7 @@ def main(telem_port=8005, cmd_port=8006, sensor_interval=2.0):
         if s_reader:
             s_reader.stop()
             s_reader.join(timeout=3)
+        _stop_cam_senders(cam_senders)
         print("[svarog] done")
 
 if __name__ == "__main__":

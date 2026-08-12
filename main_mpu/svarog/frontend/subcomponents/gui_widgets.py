@@ -293,10 +293,11 @@ _NO_GRAPH_PREFIXES = ("TS",)
 # ENC_* (encoder), MOTOR_* (motor angle) and AUTO_STOP are shown by the
 # dedicated angle panels; THERMAL_SENS_OUT_* external sensors are
 # redundant with heater temps (only THERMAL_SENS_INT_* are kept);
-# HEAT_*_DUTY cycle numbers are not plotted (temperatures still are).
+# HEAT_*_DUTY cycle numbers and HEAT_*_SP setpoints are not plotted
+# (temperatures still are).
 _IGNORED_PREFIXES = ("PG_", "FLT_", "ENC_", "MOTOR_", "THERMAL_SENS_OUT",
                      "AUTO_STOP")
-_IGNORED_SUFFIXES = ("_DUTY",)
+_IGNORED_SUFFIXES = ("_DUTY", "_SP")
 
 
 def display_name(key):

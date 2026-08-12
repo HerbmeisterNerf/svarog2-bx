@@ -1,2 +1,17 @@
-scp -r ~/Desktop/svarog/ radxa@192.168.78.2:~/Desktop/
-ssh radxa@192.168.78.2 'echo "is_ebox = False" > ~/Desktop/svarog/board/BOARD_SELECT.py'
+#!/bin/bash
+# Run ON the EBOX (172.16.18.191): push only the *.py files under
+# ~/Desktop/svarog/board (and subcomponents/) to the CUBESAT (192.168.78.2).
+set -euo pipefail
+
+CUBE=radxa@192.168.78.2
+BDIR=~/Desktop/svarog/board
+CUBE_OPTS="-o StrictHostKeyChecking=accept-new"
+
+echo "[1/2] copy board .py files EBOX -> CUBESAT"
+cd "$BDIR"
+find . -name '*.py' | tar -czf - -T - | ssh $CUBE_OPTS "$CUBE" "mkdir -p $BDIR/subcomponents && tar -C $BDIR -xzf -"
+
+echo "[2/2] set CUBESAT BOARD_SELECT to is_ebox = False"
+ssh $CUBE_OPTS "$CUBE" 'echo "is_ebox = False" > ~/Desktop/svarog/board/BOARD_SELECT.py'
+
+echo "done"
