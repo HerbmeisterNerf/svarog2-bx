@@ -19,7 +19,6 @@ import io
 import os
 import queue
 import socket
-import struct
 import sys
 import threading
 import time
@@ -34,8 +33,6 @@ from gui_theme import (BG, BG2, BG3, FG, FG_DIM, ACCENT, GREEN, RED,
 SAROG_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DEFAULT_REC_DIR = os.path.join(SAROG_DIR, "recordings", "jpeg")
 
-HDR = struct.Struct(">I")
-MAX_JPEG = 4 * 1024 * 1024
 PREVIEW_W, PREVIEW_H = 640, 480
 
 # cam_id -> (display, host, port, board cmd target)
@@ -57,6 +54,14 @@ def _mjpeg_avi_module():
         sys.path.insert(0, path)
     import mjpeg_avi
     return mjpeg_avi
+
+
+def _jpeg_proto_module():
+    path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if path not in sys.path:
+        sys.path.insert(0, path)
+    import jpeg_proto
+    return jpeg_proto
 
 
 class VideoWindow(tk.Toplevel):
@@ -273,22 +278,9 @@ class VideoWindow(tk.Toplevel):
         self._status_queue.put("stream stopped")
 
     def _read_stream(self, sock, cam):
-        buf = b""
+        read_frame = _jpeg_proto_module().read_frame
         while not self._stop.is_set():
-            chunk = sock.recv(65536)
-            if not chunk:
-                return
-            buf += chunk
-            while len(buf) >= HDR.size:
-                n = HDR.unpack(buf[:HDR.size])[0]
-                if n < 1 or n > MAX_JPEG:       # lost sync, drop header
-                    buf = buf[HDR.size:]
-                    continue
-                if len(buf) < HDR.size + n:
-                    break
-                jpeg = buf[HDR.size:HDR.size + n]
-                buf = buf[HDR.size + n:]
-                self._handle_frame(jpeg, cam)
+            self._handle_frame(read_frame(sock), cam)
 
     def _handle_frame(self, jpeg, cam):
         now = time.monotonic()
@@ -413,26 +405,14 @@ class VideoWindow(tk.Toplevel):
                 stop.wait(2)
 
     def _bg_read(self, sock, cid, stop):
-        buf = b""
+        read_frame = _jpeg_proto_module().read_frame
         while not stop.is_set():
-            chunk = sock.recv(65536)
-            if not chunk:
-                return
-            buf += chunk
-            while len(buf) >= HDR.size:
-                n = HDR.unpack(buf[:HDR.size])[0]
-                if n < 1 or n > MAX_JPEG:
-                    buf = buf[HDR.size:]
-                    continue
-                if len(buf) < HDR.size + n:
-                    break
-                jpeg = buf[HDR.size:HDR.size + n]
-                buf = buf[HDR.size + n:]
-                try:
-                    dims = Image.open(io.BytesIO(jpeg)).size
-                except Exception:
-                    continue
-                self._record_gui_frame(jpeg, dims, cid)
+            jpeg = read_frame(sock)
+            try:
+                dims = Image.open(io.BytesIO(jpeg)).size
+            except Exception:
+                continue
+            self._record_gui_frame(jpeg, dims, cid)
 
     def _stop_gui_rec(self):
         self.gui_rec = False

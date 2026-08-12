@@ -13,29 +13,18 @@ import argparse
 import io
 import os
 import socket
-import struct
+import sys
 import threading
 import time
 import tkinter as tk
 
 from PIL import Image, ImageTk
 
-HDR = struct.Struct(">I")
-MAX_JPEG = 4 * 1024 * 1024
+from jpeg_proto import HDR, MAX_JPEG, read_frame, recv_exact
 
 BG = "#111111"
 FG = "#d0d0d0"
 ACCENT = "#7fdbca"
-
-
-def recv_exact(sock, n):
-    buf = b""
-    while len(buf) < n:
-        chunk = sock.recv(n - len(buf))
-        if not chunk:
-            raise EOFError("connection closed")
-        buf += chunk
-    return buf
 
 
 class JpegReceiver:
@@ -84,10 +73,7 @@ class JpegReceiver:
             try:
                 sock.settimeout(10.0)
                 while self.running:
-                    length = HDR.unpack(recv_exact(sock, HDR.size))[0]
-                    if length > MAX_JPEG:
-                        raise ValueError(f"frame too large: {length} bytes")
-                    data = recv_exact(sock, length)
+                    data = read_frame(sock)
                     self._on_frame(data)
             except (OSError, EOFError, ValueError) as e:
                 self._set_status(f"disconnected ({e})")

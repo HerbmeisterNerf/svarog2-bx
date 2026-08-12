@@ -17,27 +17,26 @@ from subcomponents.motor import setup as setup_motor, MotorReader
 
 
 def _cam_sender_spec():
-    """(device, port, tag, src_fps) tuples for this board's JPEG senders."""
+    """(device, port, tag) tuples for this board's JPEG senders."""
     if is_ebox:
         return [
-            ("/dev/video0", 9000, "cam1", 120),
-            ("/dev/video2", 9001, "cam2", 30),
-            ("/dev/video4", 9002, "cam3", 120),
-            ("/dev/video6", 9003, "cam4", 30),
+            ("/dev/video0", 9000, "cam1"),
+            ("/dev/video2", 9001, "cam2"),
+            ("/dev/video4", 9002, "cam3"),
+            ("/dev/video6", 9003, "cam4"),
         ]
-    return [("/dev/video0", 9000, "cubesat", 120)]
+    return [("/dev/video0", 9000, "cubesat")]
 
 
-def _spawn_sender(dev, port, tag, src_fps):
+def _spawn_sender(dev, port, tag):
     log = open(f"/tmp/jpeg_sender_{tag}.log", "ab")
     p = subprocess.Popen(
         [sys.executable, os.path.join(_HERE, "subcomponents", "jpeg_sender.py"),
-         "--device", dev, "--port", str(port), "--tag", tag,
-         "--src-fps", str(src_fps)],
+         "--device", dev, "--port", str(port), "--tag", tag],
         stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT)
-    print(f"[svarog] cam sender {tag} spawned pid={p.pid} {dev}:{port} "
-          f"@{src_fps}fps", flush=True)
-    return {"dev": dev, "port": port, "tag": tag, "src_fps": src_fps,
+    print(f"[svarog] cam sender {tag} spawned pid={p.pid} {dev}:{port}",
+          flush=True)
+    return {"dev": dev, "port": port, "tag": tag,
             "proc": p, "log": log, "last_start": time.time()}
 
 
@@ -68,7 +67,7 @@ def _start_cam_senders():
                             s["log"].close()
                         except Exception:
                             pass
-                        s.update(_spawn_sender(s["dev"], s["port"], s["tag"], s["src_fps"]))
+                        s.update(_spawn_sender(s["dev"], s["port"], s["tag"]))
             stop_evt.wait(2.0)
 
     t = threading.Thread(target=_supervise, daemon=True)
