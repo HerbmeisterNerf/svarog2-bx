@@ -7,6 +7,7 @@ import motor
 import check_status
 from subcomponents import state as _st
 from subcomponents.send_telem import snap_to_text, set_push_interval
+from subcomponents.temp_control import HeaterController
 
 def _do_motor(parts):
     if len(parts) < 2:
@@ -96,7 +97,7 @@ JPEG_REC_FLAG = "/tmp/svarog_jpeg_rec"
 
 def _jpeg_sender_alive():
     try:
-        out = subprocess.run(["pgrep", "-f", r"jpeg_sender\.py --device"],
+        out = subprocess.run(["pgrep", "-f", r"jpeg_sender\.py --cam"],
                              capture_output=True, text=True, timeout=5)
         return bool(out.stdout.strip())
     except Exception:
@@ -104,8 +105,9 @@ def _jpeg_sender_alive():
 
 def _do_jpeg_rec(parts):
     if not parts:
-        rec = 1 if os.path.exists(JPEG_REC_FLAG) else 0
-        return (f"JPEG_REC={rec} SENDER={1 if _jpeg_sender_alive() else 0}")
+        # recording is continuous while the getter/sender service runs
+        alive = 1 if _jpeg_sender_alive() else 0
+        return (f"JPEG_REC={alive} SENDER={alive}")
     sub = parts[0].upper()
     if sub in ("ON", "1"):
         try:
@@ -254,6 +256,24 @@ def handle_command(line, reader):
             if _st.heater_ctrl and _st.heater_ctrl.set_setpoint(name, sp):
                 return f"OK {name} setpoint={sp}C"
             return f"ERR: unknown heater: {name}"
+        elif cmd == "HEATER_CONTROL":
+            if len(parts) < 2 or parts[1] not in ("0", "1"):
+                return "ERR: usage: HEATER_CONTROL <0|1>"
+            hc = _st.heater_ctrl
+            if parts[1] == "0":
+                if hc is None:
+                    return "ERR: no heater controller"
+                hc._continue = False
+                return "OK heaters stopped"
+            if hc is None or not hc.is_alive():
+                if reader is None:
+                    return "ERR: no sensor reader"
+                new_hc = HeaterController(reader)
+                _st.heater_ctrl = new_hc
+                new_hc.start()
+                return "OK heaters restarted"
+            hc._continue = True
+            return "OK heaters running"
         else:
             return f"ERR: unknown command: {cmd}"
     except Exception as e:

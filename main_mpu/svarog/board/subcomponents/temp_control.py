@@ -25,7 +25,7 @@ class DutyCycleManager:
         self._off_timers = {}
 
     def fire(self, htr, gpio, duty_pct, cycle_len=1.0):
-        print(f"Firing heater {htr} at duty cycle {duty_pct}")
+        # print(f"Firing heater {htr} at duty cycle {duty_pct}")
         if gpio is None:
             return
         t = self._off_timers.pop(htr, None)
@@ -90,7 +90,7 @@ class HeaterController(threading.Thread):
                 self._last_cycle = cycle
                 snap = self.reader.latest()
                 thermal = snap.thermal if snap and hasattr(snap, "thermal") else {}
-                print(f"Current thermals: {thermal}")
+                # print(f"Current thermals: {thermal}")
                 with self._lock:
                     setpoints = dict(self._sp)
                 requests = []

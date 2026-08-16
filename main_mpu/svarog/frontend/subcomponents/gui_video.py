@@ -1,19 +1,26 @@
 #!/usr/bin/env python3
 """
-Camera feed popup: connects to the board JPEG senders (raw JPEG over plain
-TCP, ~1 fps).  cam1..cam4 run on the EBOX (ports 9000-9003); the cubesat
-camera is forwarded through the EBOX on port 9004.  No RTSP anywhere.
+Camera feed popup: streams raw JPEG over plain TCP from the board image
+service (board/subcomponents/jpeg_sender.py).  All EBOX cameras (cam1..cam4)
+are served by one process on 172.16.18.191:9001; the cubesat camera is
+forwarded through the EBOX on port 9004.  No RTSP anywhere.
 
-Camera selector switches which camera the preview shows.  Recording is
-record-ALL on both sides:
+The service is request/response so frames never queue up on the wire:
 
-  * "Record (GUI)"  -- the ground station saves one MJPEG .avi per camera
-                       (cam1-4 + cubesat) into the chosen folder, even for
-                       cameras that are not currently previewed.
-  * "Record (Radxa)" -- tells both boards (EBOX + CUBESAT cmd servers) to
-                       start/stop recording on the radxa itself ("JPEGREC
-                       ON/OFF"); every sender on that board records into
-                       ~/Desktop/svarog/board/cam_recordings/jpeg/<cam>/.
+  GUI -> board  "PLAY_<cam>"     start streaming camera <cam>
+  board -> GUI  length-prefixed JPEG (or status text)
+  GUI -> board  "STREAM_RESIZE_WxHxQ"  shrink the stream to WxH, quality Q
+  GUI -> board  "ACK"            got the frame, send the next
+  GUI -> board  "STOP_STREAM"    stop streaming
+
+The board always records at full capture resolution; STREAM_RESIZE only
+affects the frames sent over the link.
+
+Recording:
+  * "Record (GUI)"  -- every frame of the currently-streamed camera is saved
+                       as a timestamped JPEG into the chosen folder.
+  * "Radxa status"  -- queries both boards ("JPEGREC"): the radxa image
+                       service records continuously while it is running.
 """
 import io
 import os
@@ -37,23 +44,15 @@ PREVIEW_W, PREVIEW_H = 640, 480
 
 # cam_id -> (display, host, port, board cmd target)
 CAM_SOURCES = [
-    ("cam1",    "CAM 1",    "172.16.18.191", 9000, "ebox"),
+    ("cam1",    "CAM 1",    "172.16.18.191", 9001, "ebox"),
     ("cam2",    "CAM 2",    "172.16.18.191", 9001, "ebox"),
-    ("cam3",    "CAM 3",    "172.16.18.191", 9002, "ebox"),
-    ("cam4",    "CAM 4",    "172.16.18.191", 9003, "ebox"),
+    ("cam3",    "CAM 3",    "172.16.18.191", 9001, "ebox"),
+    ("cam4",    "CAM 4",    "172.16.18.191", 9001, "ebox"),
     ("cubesat", "CUBESAT",  "172.16.18.191", 9004, "cubesat"),
 ]
 CAM_MAP = {cid: {"display": disp, "host": host, "port": port, "board": board}
            for cid, disp, host, port, board in CAM_SOURCES}
 BOARDS = ("ebox", "cubesat")
-
-
-def _mjpeg_avi_module():
-    path = os.path.join(SAROG_DIR, "board", "subcomponents")
-    if path not in sys.path:
-        sys.path.insert(0, path)
-    import mjpeg_avi
-    return mjpeg_avi
 
 
 def _jpeg_proto_module():
@@ -65,7 +64,8 @@ def _jpeg_proto_module():
 
 
 class VideoWindow(tk.Toplevel):
-    """Popup showing the radxa JPEG feeds; records all cams on GUI or radxa."""
+    """Popup showing the radxa JPEG feeds; captures the preview to JPEGs on GUI
+    and can start/stop radxa-side recording on both boards."""
 
     def __init__(self, root, links=None):
         super().__init__(root)
@@ -76,7 +76,7 @@ class VideoWindow(tk.Toplevel):
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
         self.links = links or {}       # {"ebox": BoardConnector, "cubesat": BoardConnector}
-        self.src_var = tk.StringVar(value="172.16.18.191:9000")
+        self.src_var = tk.StringVar(value="172.16.18.191:9001")
         self.status_var = tk.StringVar(value="not connected")
         self.rec_folder_var = tk.StringVar(value=DEFAULT_REC_DIR)
         self.fps_var = tk.StringVar(value="FPS: --")
@@ -88,11 +88,13 @@ class VideoWindow(tk.Toplevel):
         self._img_queue = queue.Queue(maxsize=2)
         self._status_queue = queue.Queue()
         self._ui_queue = queue.Queue()
+        self._tx_queue = queue.Queue()      # commands for the stream thread
         self._stop = threading.Event()      # window quit
         self._stream_stop = threading.Event()   # current stream thread
         self._gen = 0                       # bumped on every source switch
         self._thread = None
-        self._thread = None
+        self._sock = None                   # current stream socket (main thread may close it)
+        self._streaming = True
 
         self._photo = None
         self._last_t = None
@@ -100,12 +102,12 @@ class VideoWindow(tk.Toplevel):
         self._jpeg_size = 0
         self._jpeg_dims = None
 
-        # GUI-side record-ALL
+        # GUI-side capture: save previewed frames as timestamped JPEGs
         self.gui_rec = False
-        self._gui_writers = {}         # cam_id -> MjpegAvi (guarded by _rec_lock)
-        self._bg_recs = {}             # cam_id -> {"thread", "stop"}
+        self._gui_saved = 0           # frames saved this session (guarded)
         self._rec_folder = DEFAULT_REC_DIR
         self._rec_lock = threading.Lock()
+        self.resize_var = tk.StringVar(value="640x480x40")
 
         # Radxa-side record-ALL (per board, from "JPEGREC" status responses)
         self._radxa = {b: {"rec": False, "alive": False} for b in BOARDS}
@@ -117,7 +119,6 @@ class VideoWindow(tk.Toplevel):
         self._attach_link_responses()
         self._start_stream(cam="cam1")
         self.after(40, self._tick)
-        self.after(4000, self._poll_radxa)
 
     # ── UI ─────────────────────────────────────────────────────────
 
@@ -142,13 +143,29 @@ class VideoWindow(tk.Toplevel):
                      bg=BG, fg=FG, insertbackground=FG, relief="flat", bd=2)
         e.pack(side="left", fill="x", expand=True, padx=4)
         self._btn(src_bar, "Apply", self._restart_stream).pack(side="left")
+        self.stream_btn = self._btn(src_bar, "Stop", self._toggle_stream, bg=RED)
+        self.stream_btn.pack(side="left", padx=(4, 0))
+
+        res_bar = tk.Frame(left, bg=BG)
+        res_bar.pack(fill="x", pady=(4, 0))
+        self._label(res_bar, "Stream:", bg=BG).pack(side="left")
+        re = tk.Entry(res_bar, textvariable=self.resize_var, font=FONT,
+                      bg=BG, fg=FG, insertbackground=FG, relief="flat", bd=2,
+                      width=12)
+        re.pack(side="left", fill="x", expand=True, padx=4)
+        self._btn(res_bar, "Resize", self._send_resize, font=FONT_S,
+                  padx=6).pack(side="left")
+        for label, val in (("1/2", "640x480x40"), ("1/4", "320x240x40"),
+                           ("Full", "1280x720x80"), ("Raw", "0")):
+            self._btn(res_bar, label, lambda v=val: self._set_resize(v),
+                      font=FONT_S, padx=4).pack(side="left", padx=(2, 0))
 
         rec_bar = tk.Frame(left, bg=BG)
         rec_bar.pack(fill="x", pady=(4, 0))
         self.gui_rec_btn = self._btn(rec_bar, "Record (GUI)", self._toggle_gui_rec,
                                      bg=GREEN, font=FONT_B, padx=10, pady=3)
         self.gui_rec_btn.pack(side="left")
-        self.radxa_rec_btn = self._btn(rec_bar, "Record (Radxa)", self._toggle_radxa_rec,
+        self.radxa_rec_btn = self._btn(rec_bar, "Radxa status", self._query_radxa_rec,
                                        bg=GREEN, font=FONT_B, padx=10, pady=3)
         self.radxa_rec_btn.pack(side="left", padx=(8, 0))
 
@@ -222,25 +239,33 @@ class VideoWindow(tk.Toplevel):
         self.src_var.set(f"{cfg['host']}:{cfg['port']}")
         self._cur_cam = cid
         self._render_cam_selector()
+        self._streaming = True
+        self.stream_btn.configure(text="Stop", bg=RED)
         self._start_stream(cam=cid)
-        self._sync_bg_recorders()
 
     def _parse_source(self):
-        s = self.src_var.get().strip() or "172.16.18.191:9000"
+        s = self.src_var.get().strip() or "172.16.18.191:9001"
         if ":" in s:
             host, _, port = s.rpartition(":")
             host = host.strip() or "172.16.18.191"
             try:
                 return host, int(port)
             except ValueError:
-                return host, 9000
-        return s, 9000
+                return host, 9001
+        return s, 9001
 
     def _start_stream(self, cam=None):
         # stop the previous stream thread and invalidate any in-flight frames
         self._stream_stop.set()
         self._gen += 1
+        if self._sock is not None:
+            try:
+                self._sock.close()
+            except OSError:
+                pass
+            self._sock = None
         self._img_queue.queue.clear()
+        self._tx_queue = queue.Queue()
         self._last_t = None
         self._arrivals = []
         self._jpeg_size = 0
@@ -257,33 +282,102 @@ class VideoWindow(tk.Toplevel):
 
         # fresh per-stream stop event + generation so this thread is the only
         # one whose frames can ever reach the screen
+        cam_id = cam or self._cur_cam or "cam1"
         self._stream_stop = threading.Event()
         self._thread = threading.Thread(
             target=self._stream_loop,
-            args=(host, port, cam, self._stream_stop, self._gen), daemon=True)
+            args=(host, port, cam_id, self._stream_stop, self._gen), daemon=True)
         self._thread.start()
         self.status_var.set(f"connecting to {host}:{port}...")
 
     def _restart_stream(self):
         self._img_queue.queue.clear()
+        self._tx_queue = queue.Queue()
+        self._streaming = True
+        self.stream_btn.configure(text="Stop", bg=RED)
         self._start_stream(cam=None)
-        self._sync_bg_recorders()
+
+    def _parse_resize(self, s):
+        """Parse 'WxHxQ', 'W_H_Q' or '0'/'raw'.  Return cmd string or None."""
+        s = s.strip().lower().replace(",", "_").replace("x", "_")
+        if not s:
+            return None
+        if s in ("0", "raw"):
+            return "STREAM_RESIZE_0"
+        parts = s.split("_")
+        if len(parts) == 3:
+            try:
+                w, h, q = (int(p) for p in parts)
+            except ValueError:
+                return None
+            if 16 <= w <= 4096 and 16 <= h <= 4096 and 1 <= q <= 100:
+                return f"STREAM_RESIZE_{w}_{h}_{q}"
+        return None
+
+    def _set_resize(self, s):
+        self.resize_var.set(s)
+        self._send_resize()
+
+    def _send_resize(self):
+        cmd = self._parse_resize(self.resize_var.get())
+        if cmd is None:
+            self.status_var.set("bad stream size (use WxHxQ or 0 for raw)")
+            return
+        self._tx_queue.put(cmd)
+        self.status_var.set(f"sending {cmd}")
+
+    def _toggle_stream(self):
+        if self._streaming:
+            self._stop_streaming()
+        else:
+            self._streaming = True
+            self.stream_btn.configure(text="Stop", bg=RED)
+            self._start_stream(cam=self._cur_cam or "cam1")
+
+    def _stop_streaming(self):
+        self._streaming = False
+        self._stream_stop.set()
+        self._gen += 1
+        if self._sock is not None:
+            try:
+                self._sock.sendall(b"STOP_STREAM\n")
+            except OSError:
+                pass
+            try:
+                self._sock.close()
+            except OSError:
+                pass
+            self._sock = None
+        self._img_queue.queue.clear()
+        self._last_t = None
+        self._arrivals = []
+        self.status_var.set("stream stopped")
+        self.stream_btn.configure(text="Play", bg=GREEN)
 
     def _stream_loop(self, host, port, cam, stop, gen):
         while not stop.is_set():
             try:
                 sock = socket.create_connection((host, port), timeout=5)
+                sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                sock.settimeout(10.0)
             except OSError as e:
                 self._status_queue.put(f"no connection ({e})")
                 stop.wait(2)
                 continue
-            self._status_queue.put(f"connected to {host}:{port}")
+            self._sock = sock
             try:
-                sock.settimeout(10.0)
+                if stop.is_set():
+                    return
+                sock.sendall(f"PLAY_{cam}\n".encode("utf-8"))
+                self._status_queue.put(
+                    f"streaming {cam} from {host}:{port} via TCP")
                 self._read_stream(sock, cam, stop, gen)
             except (OSError, EOFError, ValueError) as e:
-                self._status_queue.put(f"disconnected ({e})")
+                if not stop.is_set():
+                    self._status_queue.put(f"disconnected ({e})")
             finally:
+                if self._sock is sock:
+                    self._sock = None
                 try:
                     sock.close()
                 except OSError:
@@ -292,9 +386,30 @@ class VideoWindow(tk.Toplevel):
         self._status_queue.put("stream stopped")
 
     def _read_stream(self, sock, cam, stop, gen):
-        read_frame = _jpeg_proto_module().read_frame
+        proto = _jpeg_proto_module()
+        await_play = True      # next message is the reply to PLAY_
         while not stop.is_set():
-            self._handle_frame(read_frame(sock), cam, gen)
+            if await_play:
+                await_play = False
+                msg = proto.read_frame(sock)
+            else:
+                try:
+                    cmd = self._tx_queue.get_nowait()
+                except queue.Empty:
+                    cmd = None
+                sock.sendall((cmd.encode() + b"\n") if cmd else b"ACK\n")
+                msg = proto.read_frame(sock)
+            if proto.is_jpeg(msg):
+                self._handle_frame(msg, cam, gen)
+            else:
+                text = msg.decode("utf-8", "replace").strip()
+                self._status_queue.put(text)
+                if text.upper().startswith("ERR"):
+                    stop.wait(1.0)
+                    if stop.is_set():
+                        return
+                    sock.sendall(f"PLAY_{cam}\n".encode("utf-8"))
+                    await_play = True
 
     def _handle_frame(self, jpeg, cam, gen):
         if gen != self._gen:
@@ -316,7 +431,7 @@ class VideoWindow(tk.Toplevel):
                 pass
         self._img_queue.put(img)
         if self.gui_rec:
-            self._record_gui_frame(jpeg, img.size, cam or "custom")
+            self._save_gui_frame(jpeg, cam or "custom")
 
     # ── tick (main thread: drain queues, render, HUD) ───────────────
 
@@ -346,7 +461,7 @@ class VideoWindow(tk.Toplevel):
             self.fps_var.set("FPS: --")
         self.after(40, self._tick)
 
-    # ── GUI-side record-ALL ─────────────────────────────────────────
+    # ── GUI-side capture: save every previewed frame as a JPEG ──────
 
     def _toggle_gui_rec(self):
         if self.gui_rec:
@@ -354,96 +469,44 @@ class VideoWindow(tk.Toplevel):
         else:
             self.gui_rec = True
             self.gui_rec_btn.configure(text="Stop (GUI)", bg=RED)
-            self.gui_rec_var.set("recording all cams...")
-            self._sync_bg_recorders()
+            folder = self._rec_folder or DEFAULT_REC_DIR
+            self.gui_rec_var.set(f"recording preview to {folder}...")
 
-    def _record_gui_frame(self, jpeg, dims, cam):
+    def _save_gui_frame(self, jpeg, cam):
         if not self.gui_rec:
+            return
+        folder = self._rec_folder or DEFAULT_REC_DIR
+        try:
+            os.makedirs(folder, exist_ok=True)
+        except OSError:
+            return
+        name = (f"frame_{cam}_{time.strftime('%Y%m%d_%H%M%S')}_"
+                f"{int(time.time() * 1e6)}.jpg")
+        try:
+            with open(os.path.join(folder, name), "wb") as f:
+                f.write(jpeg)
+        except OSError:
             return
         with self._rec_lock:
-            w = self._gui_writers.get(cam)
-            if w is None:
-                try:
-                    mjpeg_avi = _mjpeg_avi_module()
-                except Exception as e:
-                    self._ui_queue.put(lambda e=e: self.gui_rec_var.set(f"record failed: {e}"))
-                    return
-                folder = self._rec_folder or DEFAULT_REC_DIR
-                os.makedirs(folder, exist_ok=True)
-                path = os.path.join(
-                    folder, f"rec_{cam}_{time.strftime('%Y%m%d_%H%M%S')}.avi")
-                w = mjpeg_avi.MjpegAvi(path, dims[0], dims[1], fps=1.0)
-                self._gui_writers[cam] = w
-                self._ui_queue.put(self._refresh_gui_rec_status)
-            w.write(jpeg)
+            self._gui_saved += 1
+            n = self._gui_saved
+        if n % 5 == 0:
+            self._ui_queue.put(self._refresh_gui_rec_status)
 
     def _refresh_gui_rec_status(self):
-        n = len(self._gui_writers)
-        total = len(CAM_MAP) + 1 if self._cur_cam is None else len(CAM_MAP)
+        with self._rec_lock:
+            n = self._gui_saved
         folder = self._rec_folder or DEFAULT_REC_DIR
-        if n:
-            self.gui_rec_var.set(f"recording {min(n, total)}/{total} cams to {folder}")
-        else:
-            self.gui_rec_var.set("recording...")
-
-    def _sync_bg_recorders(self):
-        if not self.gui_rec:
-            for ent in self._bg_recs.values():
-                ent["stop"].set()
-            self._bg_recs.clear()
-            return
-        for cid in CAM_MAP:
-            if cid == self._cur_cam or cid in self._bg_recs:
-                continue
-            stop = threading.Event()
-            t = threading.Thread(target=self._bg_loop, args=(cid, stop), daemon=True)
-            self._bg_recs[cid] = {"thread": t, "stop": stop}
-            t.start()
-
-    def _bg_loop(self, cid, stop):
-        cfg = CAM_MAP[cid]
-        while not stop.is_set():
-            try:
-                sock = socket.create_connection((cfg["host"], cfg["port"]), timeout=5)
-            except OSError:
-                stop.wait(2)
-                continue
-            try:
-                sock.settimeout(10.0)
-                self._bg_read(sock, cid, stop)
-            except (OSError, EOFError, ValueError):
-                pass
-            finally:
-                try:
-                    sock.close()
-                except OSError:
-                    pass
-                stop.wait(2)
-
-    def _bg_read(self, sock, cid, stop):
-        read_frame = _jpeg_proto_module().read_frame
-        while not stop.is_set():
-            jpeg = read_frame(sock)
-            try:
-                dims = Image.open(io.BytesIO(jpeg)).size
-            except Exception:
-                continue
-            self._record_gui_frame(jpeg, dims, cid)
+        self.gui_rec_var.set(f"recording {n} frames to {folder}")
 
     def _stop_gui_rec(self):
         self.gui_rec = False
-        self._sync_bg_recorders()
-        self.gui_rec_btn.configure(text="Record (GUI)", bg=GREEN)
         with self._rec_lock:
-            writers, self._gui_writers = self._gui_writers, {}
-        for w in writers.values():
-            try:
-                w.close()
-            except Exception:
-                pass
-        if writers:
-            folder = self._rec_folder or DEFAULT_REC_DIR
-            self.gui_rec_var.set(f"Saved {len(writers)} cams to {folder}")
+            n, self._gui_saved = self._gui_saved, 0
+        self.gui_rec_btn.configure(text="Record (GUI)", bg=GREEN)
+        folder = self._rec_folder or DEFAULT_REC_DIR
+        if n:
+            self.gui_rec_var.set(f"Saved {n} frames to {folder}")
         else:
             self.gui_rec_var.set("")
 
@@ -471,17 +534,9 @@ class VideoWindow(tk.Toplevel):
             return
         link.send(cmd)
 
-    def _toggle_radxa_rec(self):
-        on = not any(v["rec"] for v in self._radxa.values())
+    def _query_radxa_rec(self):
         for board in BOARDS:
-            self._send_board(board, "JPEGREC ON" if on else "JPEGREC OFF")
-
-    def _poll_radxa(self):
-        for board in BOARDS:
-            link = self.links.get(board)
-            if link and link.connected:
-                link.send("JPEGREC")
-        self.after(4000, self._poll_radxa)
+            self._send_board(board, "JPEGREC")
 
     def _on_resp(self, board, text):
         st = self._radxa.setdefault(board, {"rec": False, "alive": False})
@@ -493,16 +548,12 @@ class VideoWindow(tk.Toplevel):
         self._render_radxa_rec()
 
     def _render_radxa_rec(self):
-        rec_any = any(v["rec"] for v in self._radxa.values())
-        self.radxa_rec_btn.configure(
-            text="Stop (Radxa)" if rec_any else "Record (Radxa)",
-            bg=RED if rec_any else GREEN)
         parts = []
         for board, v in self._radxa.items():
             if v["rec"]:
-                parts.append(f"{board.upper()} ●")
+                parts.append(f"{board.upper()} recording")
             elif v["alive"]:
-                parts.append(f"{board.upper()} ready")
+                parts.append(f"{board.upper()} alive")
             else:
                 parts.append(f"{board.upper()} idle")
         self.radxa_rec_var.set("Radxa: " + "  ".join(parts))
@@ -519,6 +570,16 @@ class VideoWindow(tk.Toplevel):
     def _on_close(self):
         self._stop.set()
         self._stream_stop.set()
+        if self._sock is not None:
+            try:
+                self._sock.sendall(b"STOP_STREAM\n")
+            except OSError:
+                pass
+            try:
+                self._sock.close()
+            except OSError:
+                pass
+            self._sock = None
         self._stop_gui_rec()
         for link in self.links.values():
             if link and getattr(link, "on_resp", None):

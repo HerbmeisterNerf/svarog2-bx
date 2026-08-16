@@ -111,8 +111,8 @@ class AutoStop(threading.Thread):
     Re-arms whenever a fresh retract speed is issued.
     """
 
-    SLOW_AT = 5.0
-    STOP_AT = 0.1
+    SLOW_AT = 300
+    STOP_AT = 10
     SLOW_SPEED = -10.0
     STOP_SPEED = 0.0
 

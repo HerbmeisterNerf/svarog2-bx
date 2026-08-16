@@ -147,6 +147,14 @@ class BoardPanel(tk.Frame):
                              lambda n=en_name, v=sp_var: self.link.send(
                                  f"HEATER_SETPOINT {n} {v.get()}"),
                              bg=ACCENT, fg=BG).pack(side="left", padx=2)
+            ctrl_row = tk.Frame(ht_f, bg=BG2)
+            ctrl_row.pack(fill="x", padx=4, pady=(2, 4))
+            self._btn_sm(ctrl_row, "STOP",
+                         lambda: self.link.send("HEATER_CONTROL 0"),
+                         bg=RED, fg=BG).pack(side="left", padx=(0, 4))
+            self._btn_sm(ctrl_row, "Continue",
+                         lambda: self.link.send("HEATER_CONTROL 1"),
+                         bg=TEAL, fg=BG).pack(side="left")
 
         # ── Advanced toggle ────────────────────────────────────────
         self._advanced_open = False

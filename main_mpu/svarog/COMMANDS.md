@@ -60,6 +60,7 @@ These respond to anything the GUI (or a manual telnet/script client) sends.
 | `HEATER <name> <duty>`                     | Drive heater GPIO on (`>0`), off (`0`)                             | `OK`              |
 | `SET_TRANS_PERIOD <seconds>`               | Change telemetry push interval                                     | `OK interval=N`   |
 | `HEATER_SETPOINT <name> <temp_C>`          | Set heater controller setpoint temperature                         | `OK ...C`         |
+| `HEATER_CONTROL <0|1>`                     | Stop the heater controller thread (`0`) or start/ensure it runs (`1`) | `OK heaters ...`   |
 
 Every `<name>`, `<duty>`, `<seconds>`, etc. is validated by the backend handler
 before any hardware access. Unknown commands or bad values reply with `ERR: ...`.

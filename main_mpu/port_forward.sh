@@ -4,6 +4,7 @@
 #
 #   EBOX :8016  ->  192.168.78.2:8006   (CUBESAT command)
 #   EBOX :8015  ->  192.168.78.2:8005   (CUBESAT telemetry)
+#   EBOX :9004  ->  192.168.78.2:9001   (CUBESAT JPEG image service)
 #   EBOX :1238  ->  192.168.78.2:1234   (CUBESAT RTSP, TCP+UDP)
 #
 # On the frontend, point the CUBESAT panel at the EBOX IP with the forwarded
@@ -21,6 +22,7 @@ DST_IP="192.168.78.2"
 FORWARDS=(
   "tcp:8016:8006"   # CUBESAT command
   "tcp:8015:8005"   # CUBESAT telemetry
+  "tcp:9004:9001"   # CUBESAT JPEG image service
   # "udp:1238:1234"   # CUBESAT RTSP (RTP/RTSP over UDP)
   # "tcp:1238:1234"   # CUBESAT RTSP (fallback over TCP)
 )
