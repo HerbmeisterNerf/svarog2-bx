@@ -166,8 +166,26 @@ class VideoWindow(tk.Toplevel):
                                      bg=GREEN, font=FONT_B, padx=10, pady=3)
         self.gui_rec_btn.pack(side="left")
         self.radxa_rec_btn = self._btn(rec_bar, "Radxa status", self._query_radxa_rec,
-                                       bg=GREEN, font=FONT_B, padx=10, pady=3)
+                                        bg=GREEN, font=FONT_B, padx=10, pady=3)
         self.radxa_rec_btn.pack(side="left", padx=(8, 0))
+        self.prune_var = True
+        self.prune_btn = self._btn(rec_bar, "Prune: ON", self._toggle_prune,
+                                    bg=GREEN, font=FONT_B, padx=10, pady=3)
+        self.prune_btn.pack(side="left", padx=(8, 0))
+
+        fps_bar = tk.Frame(left, bg=BG)
+        fps_bar.pack(fill="x", pady=(4, 0))
+        self._label(fps_bar, "Rec FPS:", bg=BG).pack(side="left")
+        self.fps_entry_var = tk.StringVar(value="6.7")
+        fps_e = tk.Entry(fps_bar, textvariable=self.fps_entry_var, font=FONT,
+                         bg=BG, fg=FG, insertbackground=FG, relief="flat", bd=2,
+                         width=6)
+        fps_e.pack(side="left", padx=4)
+        self._btn(fps_bar, "Set", self._set_rec_fps, font=FONT_S,
+                  padx=6).pack(side="left")
+        for label, val in (("1", "1"), ("5", "5"), ("10", "10"), ("20", "20")):
+            self._btn(fps_bar, label, lambda v=val: self._set_rec_fps_val(v),
+                      font=FONT_S, padx=4).pack(side="left", padx=(2, 0))
 
         folder_bar = tk.Frame(left, bg=BG)
         folder_bar.pack(fill="x")
@@ -288,6 +306,8 @@ class VideoWindow(tk.Toplevel):
             target=self._stream_loop,
             args=(host, port, cam_id, self._stream_stop, self._gen), daemon=True)
         self._thread.start()
+        if self.prune_var:
+            self._tx_queue.put("PRUNE_ON")
         self.status_var.set(f"connecting to {host}:{port}...")
 
     def _restart_stream(self):
@@ -537,6 +557,30 @@ class VideoWindow(tk.Toplevel):
     def _query_radxa_rec(self):
         for board in BOARDS:
             self._send_board(board, "JPEGREC")
+
+    def _toggle_prune(self):
+        self.prune_var = not self.prune_var
+        if self.prune_var:
+            self.prune_btn.configure(text="Prune: ON", bg=GREEN)
+            self._tx_queue.put("PRUNE_ON")
+        else:
+            self.prune_btn.configure(text="Prune: OFF", bg=RED)
+            self._tx_queue.put("PRUNE_OFF")
+
+    def _set_rec_fps_val(self, fps_str):
+        self.fps_entry_var.set(fps_str)
+        self._set_rec_fps()
+
+    def _set_rec_fps(self):
+        try:
+            fps = float(self.fps_entry_var.get())
+            if fps <= 0:
+                fps = 0.1
+            interval = 1.0 / fps
+            self._tx_queue.put(f"SET_INTERVAL_{interval:.4f}")
+            self.status_var.set(f"rec interval -> {interval:.4f}s ({fps:.1f} FPS)")
+        except ValueError:
+            self.status_var.set("ERR: bad FPS value")
 
     def _on_resp(self, board, text):
         st = self._radxa.setdefault(board, {"rec": False, "alive": False})

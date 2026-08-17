@@ -13,7 +13,7 @@ from subcomponents.sensor_reader import SensorReader
 from subcomponents.temp_control import HeaterController
 from subcomponents.send_telem import telem_server
 from subcomponents.command_server import cmd_server
-from subcomponents.motor import setup as setup_motor, MotorReader
+from subcomponents.motor import MotorReader
 
 
 def _cam_sender_spec():
@@ -117,9 +117,7 @@ def main(telem_port=8005, cmd_port=8006, sensor_interval=2.0):
     _st.motor_reader.start()
     print("[svarog] MotorReader started")
 
-    if is_ebox:
-        setup_motor()
-    else:
+    if not is_ebox:
         from subcomponents.encoder_new import EncoderReader, AutoStop
         _st.enc_reader = EncoderReader()
         _st.enc_reader.start()

@@ -68,7 +68,8 @@ DEFAULT_SAVE_DIR = os.path.join(
 
 GRAB_TIMEOUT = 20.0    # per-frame gst-launch timeout
 RECV_TIMEOUT = 30.0    # waiting for a client command/ACK before dropping it
-RETENTION = 120.0      # delete captured files older than this many seconds
+RETENTION = 60.0      # delete captured files older than this many seconds
+KEEP_TIME = 70.0      # keep captured files older than this many seconds (so that if we reconnect/restart again with PRUNE=ON we don't erase all our footage)
 
 
 def _set_cpu_profile():
@@ -158,8 +159,10 @@ class JpegGetter(threading.Thread):
         self.interval = interval
         self.latest_files = {}            # name -> path of newest frame
         self.latest_bufs = {}             # name -> raw bytes of newest frame
+        self.prune_enabled = False
         self._lock = threading.Lock()
         self._stop = threading.Event()
+        self.prune_check_lock = threading.Lock()
 
     def stop(self):
         self._stop.set()
@@ -219,23 +222,28 @@ class JpegGetter(threading.Thread):
                 with self._lock:
                     self.latest_files[name] = path
                     self.latest_bufs[name] = data
+            with self.prune_check_lock:
+                if self.prune_enabled:
+                    for _, name in self.cam_specs:
+                        cam_dir = os.path.join(self.save_dir, name)
+                        print("Pruning has been disabled.")
+                        # self._prune(cam_dir)
             self._stop.wait(self.interval)
 
-    # @staticmethod
-    # def _prune(cam_dir):
-    #     """Drop stale capture files so the disk doesn't fill up."""
-    #     try:
-    #         now = time.time()
-    #         for fn in os.listdir(cam_dir):
-    #             p = os.path.join(cam_dir, fn)
-    #             try:
-    #                 if now - os.path.getmtime(p) > RETENTION:
-    #                     os.remove(p)
-    #             except OSError:
-    #                 pass
-    #     except OSError:
-    #         pass
-
+    @staticmethod
+    def _prune(cam_dir):
+        """Drop stale capture files so the disk doesn't fill up."""
+        try:
+            now = time.time()
+            for fn in os.listdir(cam_dir):
+                p = os.path.join(cam_dir, fn)
+                try:
+                    if KEEP_TIME > now - os.path.getmtime(p) > RETENTION:
+                        os.remove(p)
+                except OSError:
+                    pass
+        except OSError:
+            pass
 
 def _read_line(sock):
     """Read one newline-terminated client command; None on EOF."""
@@ -363,6 +371,25 @@ class JpegSender(threading.Thread):
             return playing
         if cmd.startswith("STREAM_RESIZE"):
             send_payload(_text(self._set_resize(cmd)))
+            return playing
+        if cmd in ("PRUNE_ON", "PRUNE_OFF"):
+            with self.getter.prune_check_lock:
+                self.getter.prune_enabled = (cmd == "PRUNE_ON")
+            state = "on" if self.getter.prune_enabled else "off"
+            print(f"[jpeg_sender] prune -> {state}", flush=True)
+            send_payload(_text(f"PRUNE {state}"))
+            return playing
+        if cmd.startswith("SET_INTERVAL"):
+            rest = line[len("SET_INTERVAL"):].strip().strip("_")
+            try:
+                val = float(rest)
+                if val < 0.01:
+                    val = 0.01
+                self.getter.interval = val
+                print(f"[jpeg_sender] interval -> {val}s", flush=True)
+                send_payload(_text(f"INTERVAL {val}"))
+            except (ValueError, TypeError):
+                send_payload(_text("ERR: SET_INTERVAL <seconds>"))
             return playing
         if cmd == "STOP_STREAM":
             print(f"[jpeg_sender] stop stream for {addr}", flush=True)

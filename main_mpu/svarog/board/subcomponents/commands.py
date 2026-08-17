@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess
 import time
 from BOARD_SELECT import is_ebox
@@ -124,6 +125,44 @@ def _do_jpeg_rec(parts):
         return "OK JPEG_REC=0"
     return "ERR: usage: JPEGREC <ON|OFF>"
 
+def _read_cpu_stat():
+    """Read /proc/stat and return (user, nice, system, idle, iowait) ticks."""
+    with open("/proc/stat") as f:
+        parts = f.readline().split()
+    return [int(x) for x in parts[1:6]]
+
+_prev_cpu = _read_cpu_stat()
+_prev_cpu_time = time.monotonic()
+
+def _do_sysstatus():
+    global _prev_cpu, _prev_cpu_time
+    lines = []
+    # disk
+    try:
+        st = shutil.disk_usage("/")
+        used_pct = (st.used / st.total) * 100 if st.total else 0
+        lines.append(f"DISK_TOTAL={st.total // (1024*1024)}MB")
+        lines.append(f"DISK_USED={st.used // (1024*1024)}MB")
+        lines.append(f"DISK_PCT={used_pct:.1f}")
+    except OSError:
+        lines.append("DISK_TOTAL=0MB DISK_USED=0MB DISK_PCT=0.0")
+    # cpu
+    try:
+        cur = _read_cpu_stat()
+        now = time.monotonic()
+        dt = now - _prev_cpu_time
+        if dt > 0:
+            d = [c - p for c, p in zip(cur, _prev_cpu)]
+            idle = d[3] + (d[4] if len(d) > 4 else 0)
+            total = sum(d)
+            usage = ((total - idle) / total) * 100 if total else 0
+            lines.append(f"CPU_PCT={usage:.1f}")
+        _prev_cpu = cur
+        _prev_cpu_time = now
+    except OSError:
+        lines.append("CPU_PCT=0.0")
+    return "\n".join(lines)
+
 def _do_status(reader, parts):
     if not is_ebox:
         pg, flt = check_status.read_all()
@@ -234,6 +273,8 @@ def handle_command(line, reader):
             return _do_cam(parts[1:])
         elif cmd == "JPEGREC":
             return _do_jpeg_rec(parts[1:])
+        elif cmd == "SYSSTATUS":
+            return _do_sysstatus()
         elif cmd == "SET_TRANS_PERIOD":
             if len(parts) < 2:
                 return "ERR: usage: SET_TRANS_PERIOD <seconds>"

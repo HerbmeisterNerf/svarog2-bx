@@ -209,6 +209,8 @@ class BoardPanel(tk.Frame):
         mot_btns = tk.Frame(mot, bg=BG2)
         mot_btns.pack(fill="x", padx=4, pady=(2, 2))
         self._btn_sm(mot_btns, "PING", lambda: self.link.send("MOTOR PING")).pack(side="left", padx=1)
+        self._btn_sm(mot_btns, "Setup", lambda: self.link.send("MOTOR RAW I"),
+                     bg=TEAL, fg=BG).pack(side="left", padx=1)
         self._btn_sm(mot_btns, "RAW", self._raw_motor).pack(side="left", padx=1)
 
         # ── Encoder / Motor angle (cubesat: both, ebox: motor) ─────
@@ -234,6 +236,23 @@ class BoardPanel(tk.Frame):
                     row, title="Motor", dial_size=110, show_dial=not self.show_encoder,
                     color=TEAL)
                 self.motor_panel.pack(side="left", padx=(8, 0) if self.show_encoder else 0)
+
+        # ── System (disk + CPU) ────────────────────────────────────
+        sys_f = tk.LabelFrame(ctrl, text=" System ", font=FONT_B,
+                              fg=FG, bg=BG2, bd=1, relief="groove")
+        sys_f.pack(fill="x", pady=(0, 4))
+        sys_row = tk.Frame(sys_f, bg=BG2)
+        sys_row.pack(fill="x", padx=4, pady=2)
+        self._label(sys_row, "CPU:", font=FONT_S).pack(side="left")
+        self.cpu_var = tk.StringVar(value="--")
+        self.cpu_lbl = self._label(sys_row, textvariable=self.cpu_var, fg=FG,
+                                   font=FONT_B)
+        self.cpu_lbl.pack(side="left", padx=(2, 12))
+        self._label(sys_row, "Disk:", font=FONT_S).pack(side="left")
+        self.disk_var = tk.StringVar(value="--")
+        self.disk_lbl = self._label(sys_row, textvariable=self.disk_var, fg=FG,
+                                    font=FONT_B)
+        self.disk_lbl.pack(side="left", padx=(2, 12))
 
         # ── Command entry ──────────────────────────────────────────
         cmd_f = tk.Frame(ctrl, bg=BG2)
@@ -384,11 +403,39 @@ class BoardPanel(tk.Frame):
                 pass
         panel.update(angle=angle, accum=accum)
 
+    def _update_sysstatus(self, text):
+        cpu = disk = None
+        for line in text.split("\n"):
+            if "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            k, v = k.strip(), v.strip()
+            if k == "CPU_PCT":
+                cpu = v
+            elif k == "DISK_PCT":
+                disk = v
+            elif k == "DISK_USED":
+                disk = f"{v} / " + (disk or "")
+            elif k == "DISK_TOTAL":
+                disk = (disk or "") + v
+        if cpu is not None:
+            try:
+                val = float(cpu)
+                color = RED if val > 80 else (ORANGE if val > 60 else FG)
+                self.cpu_var.set(f"{val:.0f}%")
+                self.cpu_lbl.configure(fg=color)
+            except ValueError:
+                self.cpu_var.set(cpu)
+        if disk is not None:
+            self.disk_var.set(disk)
+
     def _log(self, text, tag=None):
         self.resp_text.configure(state="normal")
         self.resp_text.insert("end", text + "\n", tag)
         self.resp_text.see("end")
         self.resp_text.configure(state="disabled")
+        if not tag and text and not text.startswith(">"):
+            self._update_sysstatus(text)
 
     def _poll_queues(self):
         self.link.poll()
@@ -484,6 +531,9 @@ class SvarogGUI:
 
         self.cubesat.build_connection_bar(top).pack(side="right")
 
+        self._sysstatus_interval = 5000  # ms
+        self.root.after(self._sysstatus_interval, self._poll_sysstatus)
+
     def _make_telem_pane(self, pw, title, graph_height=80):
         pane = TelemetryPanel(pw, title, graph_height=graph_height)
         pw.add(pane, weight=1)
@@ -513,6 +563,12 @@ class SvarogGUI:
         for bp in (self.ebox, self.cubesat):
             if bp.link.connected:
                 bp.link.send(cmd)
+
+    def _poll_sysstatus(self):
+        for bp in (self.ebox, self.cubesat):
+            if bp.link.connected:
+                bp.link.send("SYSSTATUS")
+        self.root.after(self._sysstatus_interval, self._poll_sysstatus)
 
     def _open_camera(self):
         win = getattr(self, "_cam_win", None)
