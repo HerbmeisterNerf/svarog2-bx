@@ -20,6 +20,8 @@ import sys
 import threading
 import time
 import tkinter as tk
+import numpy as np
+import cv2
 
 from PIL import Image, ImageTk
 
@@ -49,6 +51,7 @@ class JpegReceiver:
         self._jpeg_size = 0
         self._saved = 0
         self._save_counter = 0
+        self.processed_t = None
 
         self.status = tk.StringVar(value="connecting...")
         self._build_ui()
@@ -62,8 +65,18 @@ class JpegReceiver:
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
         img = Image.new("RGB", (640, 360), (0, 0, 0))
         self._photo = ImageTk.PhotoImage(img)
-        self.lbl = tk.Label(self.root, image=self._photo, bg="#000000")
-        self.lbl.pack(padx=4, pady=4)
+        # self.lbl = tk.Label(self.root, image=self._photo, bg="#000000")
+        # self.lbl.pack(padx=4, pady=4)
+        # self.info = tk.Label(self.root, textvariable=self.status, fg=ACCENT,
+        #                      bg=BG, font=("DejaVu Sans", 10))
+        # self.info.pack(fill="x", padx=4, pady=(0, 4))
+
+        self.canvas = tk.Canvas(self.root, width=640, height=360, bg="#000000", highlightthickness=0)
+        self.canvas.pack(padx=4, pady=4)
+
+        # Create the image object on the canvas ONCE
+        self.image_on_canvas = self.canvas.create_image(0, 0, anchor=tk.NW, image=self._photo)
+
         self.info = tk.Label(self.root, textvariable=self.status, fg=ACCENT,
                              bg=BG, font=("DejaVu Sans", 10))
         self.info.pack(fill="x", padx=4, pady=(0, 4))
@@ -142,23 +155,79 @@ class JpegReceiver:
                 except OSError:
                     pass
 
-    def _tick(self):
-        if self._latest is not None:
-            now = time.monotonic()
-            try:
-                img = Image.open(io.BytesIO(self._latest)).convert("RGB")
-                self._photo = ImageTk.PhotoImage(img)
-                self.lbl.configure(image=self._photo)
-            except Exception:
-                pass
-            age = now - self._last_t
-            fps = len([t for t in self._arrivals if now - t <= 5.0]) / 5.0
-            msg = (f"{self.host}:{self.port}  |  {self._jpeg_size // 1024}kB  |  "
-                   f"{fps:.1f} fps  |  last {age:.1f}s ago")
-            if self.save_dir:
-                msg += f"  |  saved {self._saved}"
-            self.status.set(msg)
-        self.root.after(100, self._tick)
+    # def _tick(self):
+    #     if self._latest is not None:
+    #         now = time.monotonic()
+    #         try:
+    #             img = Image.open(io.BytesIO(self._latest)).convert("RGB")
+    #             self._photo = ImageTk.PhotoImage(img)
+    #             self.lbl.configure(image=self._photo)
+    #         except Exception:
+    #             pass
+    #         age = now - self._last_t
+    #         fps = len([t for t in self._arrivals if now - t <= 5.0]) / 5.0
+    #         msg = (f"{self.host}:{self.port}  |  {self._jpeg_size // 1024}kB  |  "
+    #                f"{fps:.1f} fps  |  last {age:.1f}s ago")
+    #         if self.save_dir:
+    #             msg += f"  |  saved {self._saved}"
+    #         self.status.set(msg)
+    #     self.root.after(100, self._tick)
+
+    # def _tick(self):
+    #     if self._latest is not None:
+    #         now = time.monotonic()
+
+    #         # ONLY render if a new frame has arrived since our last tick
+    #         if self._last_t != self._processed_t:
+    #             self._processed_t = self._last_t
+
+    #             try:
+    #                 # Skip the .convert("RGB") - Pillow handles JPEGs fine natively
+    #                 img = Image.open(io.BytesIO(self._latest))
+    #                 self._photo = ImageTk.PhotoImage(img)
+
+    #                 # UPDATE CANVAS INSTEAD OF LABEL
+    #                 self.canvas.itemconfig(self.image_on_canvas, image=self._photo)
+    #             except Exception:
+    #                 pass
+
+    #         # You can still update the text status every tick
+    #         age = now - self._last_t
+    #         fps = len([t for t in self._arrivals if now - t <= 5.0]) / 5.0
+    #         msg = (f"{self.host}:{self.port}  |  {self._jpeg_size // 1024}kB  |  "
+    #                f"{fps:.1f} fps  |  last {age:.1f}s ago")
+    #         if self.save_dir:
+    #             msg += f"  |  saved {self._saved}"
+    #         self.status.set(msg)
+
+    #     # Loop much faster! 30ms lets you hit ~30 FPS if the network supports it.
+    #     # (It will only burn CPU if a new frame actually arrived due to our check above)
+    #     self.root.after(30, self._tick)
+
+
+        def _tick(self):
+            if self._latest is not None and self._last_t != self._processed_t:
+                self._processed_t = self._last_t
+                try:
+                    # 2. Decode JPEG to OpenCV NumPy array (C-accelerated)
+                    np_arr = np.frombuffer(self._latest, np.uint8)
+                    frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+                    
+                    if frame is not None:
+                        h, w, _ = frame.shape
+                        # Convert BGR to RGB bytes
+                        rgb_bytes = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB).tobytes()
+                        
+                        # 3. Format as raw PPM data block
+                        ppm_header = f'P6 {w} {h} 255 '.encode()
+                        ppm_data = ppm_header + rgb_bytes
+                        
+                        # 4. UPDATE EXISTING PHOTO IN-PLACE (No new PhotoImage objects!)
+                        self._photo.put(ppm_data)
+                except Exception:
+                    pass
+
+            self.root.after(30, self._tick)
 
     def _on_close(self):
         self.running = False
